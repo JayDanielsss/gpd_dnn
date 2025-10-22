@@ -170,9 +170,9 @@ cython_debug/
 *.keras
 
 # Slurm jobs:
-.slurm
+*.slurm
 
 # .png files:
 # [NOTE]: The decision to ignore image files is unfortunate, but we have to do this because
 # there are a million of them.
-.png
+*.png
