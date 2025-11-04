@@ -176,3 +176,6 @@ cython_debug/
 # [NOTE]: The decision to ignore image files is unfortunate, but we have to do this because
 # there are a million of them.
 *.png
+
+# .eps files:
+*eps
