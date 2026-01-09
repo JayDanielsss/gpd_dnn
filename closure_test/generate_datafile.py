@@ -272,7 +272,7 @@ test_dataframe = pd.DataFrame({
 })
 
 test_dataframe.to_csv(
-    path_or_buf = f"{SCRATCH_PATH}/version_v{VERSION_NUMBER}/data/main_pseudodata_file.csv"
+    path_or_buf = f"{SCRATCH_PATH}/version_v{VERSION_NUMBER}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
 )
 
 print(f"[INFO]: End of script reached!")

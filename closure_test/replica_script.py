@@ -144,8 +144,8 @@ CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
 CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
 
 CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
-CFF_H_TILDE_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
-CFF_E_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
+CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
+CFF_E_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
 CFF_E_TILDE_KM15 = complex(CFF_REAL_ET_KM15, CFF_IMAG_ET_KM15)
 
 print(f"[INFO]: Selected CFF H = {CFF_H_KM15}")
@@ -1303,3 +1303,5 @@ plt.close(curves_fig)
 plt.close(log_curves_fig)
 
 tf.keras.backend.clear_session()
+
+print(f"[INFO]: End of script reached!")

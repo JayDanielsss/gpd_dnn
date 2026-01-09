@@ -112,8 +112,8 @@ CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
 CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
 
 CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
-CFF_H_TILDE_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
-CFF_E_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
+CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
+CFF_E_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
 CFF_E_TILDE_KM15 = complex(CFF_REAL_ET_KM15, CFF_IMAG_ET_KM15)
 
 print(f"[INFO]: Selected CFF H = {CFF_H_KM15}")
@@ -143,13 +143,21 @@ STARTING_PHI_VALUE_IN_DEGREES = test_dataframe['phi'].min()
 ENDING_PHI_VALUE_IN_DEGREES = test_dataframe['phi'].max()
 NUMBER_OF_PHI_POINTS = test_dataframe[test_dataframe['phi'].notna()]
 
-phi_array_in_degrees = np.linspace(
+print(f"[INFO]: Starting value of phi: {STARTING_PHI_VALUE_IN_DEGREES}")
+print(f"[INFO]: Ending value of phi: {ENDING_PHI_VALUE_IN_DEGREES}")
+print(f"[INFO]: Total number of phi: {NUMBER_OF_PHI_POINTS}")
+
+# phi_array_in_degrees = np.linspace(
+#     start = STARTING_PHI_VALUE_IN_DEGREES,
+#     stop = ENDING_PHI_VALUE_IN_DEGREES,
+#     num = NUMBER_OF_PHI_POINTS)
+
+# phi_array_in_radians = [np.radians(degree_value) for degree_value in phi_array_in_degrees]
+
+phi_array_in_radians = np.linspace(
     start = STARTING_PHI_VALUE_IN_DEGREES,
     stop = ENDING_PHI_VALUE_IN_DEGREES,
     num = NUMBER_OF_PHI_POINTS)
-
-phi_array_in_radians = [np.radians(degree_value) for degree_value in phi_array_in_degrees]
-
 ##########################################
 # DNN Model Setup
 ##########################################
@@ -1346,13 +1354,13 @@ ax4.hist(cff_h_real_pred_per_replica, bins = 30, alpha = 0.6, color = 'skyblue',
 ax4.plot(
     burner_x_values_cff_h_real, norm.pdf(burner_x_values_cff_h_real, cff_h_real_mean, cff_h_real_stddev), 
     color = "red", linestyle = "--", label = fr"Gaussian Fit: $\mu = {cff_h_real_mean:.3f}$, $\sigma = {cff_h_real_stddev:.3f}$")
-ax4.axvline(CFF_REAL_E_KM15, color = "green", linestyle = "-", linewidth = 2., label = f"KM15: {CFF_REAL_E_KM15:.3f}")
+ax4.axvline(CFF_REAL_H_KM15, color = "green", linestyle = "-", linewidth = 2., label = f"KM15: {CFF_REAL_H_KM15:.3f}")
 ax4.set_ylabel("Frequency", rotation = 90.)
 ax4.set_xlabel(r"Re$[\mathcal{H}]$")
 ax4.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 ax4.legend()
-fig4.savefig(f"./version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.png")
-fig4.savefig(f"./version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.eps")
+fig4.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.png")
+fig4.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.eps")
 plt.show()
 plt.close(fig4)
 
@@ -1366,7 +1374,7 @@ ax5.hist(cff_h_imag_pred_per_replica, bins = 30, alpha = 0.6, color = 'skyblue',
 ax5.plot(
     burner_x_values_cff_h_imag, norm.pdf(burner_x_values_cff_h_imag, cff_h_imag_mean, cff_h_imag_stddev), 
     color = "red", linestyle = "--", label = fr"Gaussian Fit: $\mu = {cff_h_imag_mean:.3f}$, $\sigma = {cff_h_imag_stddev:.3f}$")
-ax5.axvline(CFF_IMAG_E_KM15, color = "green", linestyle = "-", linewidth = 2., label = f"KM15: {CFF_IMAG_E_KM15:.3f}")
+ax5.axvline(CFF_IMAG_H_KM15, color = "green", linestyle = "-", linewidth = 2., label = f"KM15: {CFF_IMAG_H_KM15:.3f}")
 ax5.set_ylabel("Frequency", rotation = 90.)
 ax5.set_xlabel(r"Im$[\mathcal{H}]$")
 ax5.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
@@ -1515,3 +1523,5 @@ post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/
 post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
 plt.show()
 plt.close(post_cff_fit_bsa_figure)
+
+print(f"[INFO]: End of script reached!")
