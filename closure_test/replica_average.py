@@ -2,7 +2,7 @@
 # FILE INFORMATION:
 # Purpose: averages over all the replicas
 # Created: 20260107
-# Last changed: 20260108
+# Last changed: 20260112
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -976,24 +976,24 @@ def bkm10_cross_section(
     
     if lep_helicity == 0.0:
         tf_cross_section_km15 = 0.5 * (
-            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
+            _CONVERSION_FACTOR*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + bh_km15_minus_beam +
                 dvcs_km15_plus_beam + dvcs_km15_minus_beam +
-                interference_km15_plus_beam + interference_km15_minus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2)))
+                interference_km15_plus_beam + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == 1.0:
         tf_cross_section_km15 = (
-            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
+            _CONVERSION_FACTOR*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + 0.0 +
                 dvcs_km15_plus_beam + 0.0 +
-                interference_km15_plus_beam + 0.0) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2)))
+                interference_km15_plus_beam + 0.0) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == -1.0:
         tf_cross_section_km15 = (
-            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
+            _CONVERSION_FACTOR*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 0.0 + bh_km15_minus_beam +
                 0.0 + dvcs_km15_minus_beam +
-                0.0 + interference_km15_minus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2)))
+                0.0 + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     return tf_cross_section_km15
 
@@ -1031,13 +1031,8 @@ def bkm10_bsa(
         q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2, 
         cff_re_h, cff_re_ht, cff_re_e, cff_im_h, cff_im_ht, cff_im_e, use_ww)
     
-    cross_section_plus_beam = (_CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
-                bh_km15_plus_beam + dvcs_km15_plus_beam + interference_km15_plus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2))
-                )
-    
-    cross_section_minus_beam = (_CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
-                bh_km15_minus_beam + dvcs_km15_minus_beam + interference_km15_minus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2))
-                )
+    cross_section_plus_beam = bh_km15_plus_beam + dvcs_km15_plus_beam + interference_km15_plus_beam
+    cross_section_minus_beam = bh_km15_minus_beam + dvcs_km15_minus_beam + interference_km15_minus_beam
 
     tf_bsa = ((cross_section_plus_beam - cross_section_minus_beam) / (cross_section_plus_beam + cross_section_minus_beam))
         

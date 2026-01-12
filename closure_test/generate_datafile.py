@@ -14,6 +14,7 @@ print(f"[INFO]: Script began running!")
 # the program. Change these if you need!
 ##########################################
 
+# verify this is what you want
 SCRATCH_PATH = 'placeholder'
 
 VERSION_NUMBER = 1
@@ -24,6 +25,8 @@ print(f"[INFO]: We are saving figures and data with the following appendage: {MA
 
 STARTING_PHI_VALUE_IN_DEGREES = 0
 ENDING_PHI_VALUE_IN_DEGREES = 360
+
+# this number is important!
 NUMBER_OF_PHI_POINTS = 360
 
 TEST_LEPTON_HELICITY = 0.0
@@ -54,10 +57,10 @@ print(f"[INFO]: Libraries imported!")
 # Making required directories
 ##########################################
 
-os.makedirs(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/data", exist_ok = True)
-os.makedirs(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/plots", exist_ok = True)
-os.makedirs(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/learning_curves", exist_ok = True)
-os.makedirs(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/replicas", exist_ok = True)
+os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data", exist_ok = True)
+os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots", exist_ok = True)
+os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves", exist_ok = True)
+os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/replicas", exist_ok = True)
 
 ##########################################
 # Matplotlib Plotting Customizability

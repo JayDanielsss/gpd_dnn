@@ -2,7 +2,7 @@
 # FILE INFORMATION:
 # Purpose: runs *a* replica based
 # Created: 20260107
-# Last changed: 20260108
+# Last changed: 20260111
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -12,6 +12,7 @@ print(f"[INFO]: Script began running!")
 # the program. Change these if you need!
 ##########################################
 
+# verify this is what you want
 SCRATCH_PATH = 'placeholder'
 
 VERSION_NUMBER = 1
@@ -25,11 +26,14 @@ TEST_TARGET_POLARIZATION = 0.0
 
 print(f"[INFO]: Detected lepton helicity to be: {'unpolarized' if TEST_LEPTON_HELICITY == 0.0 else 'polarized'}")
 
-_DNN_TRAINING_TEMPORARY_SPLIT_PERCENTAGE = 0.1
-_DNN_VALIDATION_TESTING_SPLIT_PERCENTAGE = 0.1
+# 80% temporary, 20% testing
+_DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE = 0.8
 
-print(f"[INFO]: Detected training/temporary data split percentage to be {100. * _DNN_TRAINING_TEMPORARY_SPLIT_PERCENTAGE}%")
-print(f"[INFO]: Detected validation/testing data split percentage to be {100. * _DNN_VALIDATION_TESTING_SPLIT_PERCENTAGE}%")
+# of the above 80% temporary, 80% training, 20% validation
+_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE = 0.8
+
+print(f"[NOTE]: Testing/Temporary Split is {_DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_testing_points} testing points (with ceiling).")
+print(f"[NOTE]: Training/Validation Split is {_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
 
 _INITIALIZER_MINIMUM_VALUE = -0.1
 _INITIALIZER_MAXMIMUM_VALUE = 0.1
@@ -154,23 +158,27 @@ print(f"[INFO]: Selected CFF E = {CFF_E_KM15}")
 print(f"[INFO]: Selected CFF Ht = {CFF_H_TILDE_KM15}")
 print(f"[INFO]: Selected CFF Et = {CFF_E_TILDE_KM15}")
 
-number_of_dnn_temporary_points = int(np.ceil(TOTAL_DATA_SIZE * _DNN_TRAINING_TEMPORARY_SPLIT_PERCENTAGE))
-number_of_dnn_testing_points = int(np.ceil(number_of_dnn_temporary_points * _DNN_VALIDATION_TESTING_SPLIT_PERCENTAGE))
-number_of_dnn_validation_points = number_of_dnn_temporary_points - number_of_dnn_testing_points
-number_of_dnn_training_points = TOTAL_DATA_SIZE - number_of_dnn_validation_points - number_of_dnn_testing_points
+number_of_dnn_temporary_points = int(np.ceil(TOTAL_DATA_SIZE * _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE))
+number_of_dnn_testing_points = TOTAL_DATA_SIZE - number_of_dnn_temporary_points
+number_of_dnn_training_points = int(np.ceil(number_of_dnn_temporary_points * _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE))
+number_of_dnn_validation_points = TOTAL_DATA_SIZE - number_of_dnn_training_points - number_of_dnn_testing_points
 
-print(f"[INFO]: Train/Validation Split is {_DNN_TRAINING_TEMPORARY_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
-print(f"[INFO]: Validation/Test Split is {_DNN_VALIDATION_TESTING_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_testing_points} testing points (with ceiling).")
-print(f"[INFO]: Remaining training data points are: {number_of_dnn_training_points}")
+print(f"[NOTE]: Testing/Temporary Split is {_DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_testing_points} testing points (with ceiling).")
+print(f"[NOTE]: Training/Validation Split is {_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
+print(f"[NOTE]: Remaining training data points are: {number_of_dnn_training_points}")
 
-x_training, x_remaining, y_training, y_remaining = train_test_split(
-    x_data, y_data,
-    test_size = _DNN_TRAINING_TEMPORARY_SPLIT_PERCENTAGE,
+# testing/temporary split:
+x_testing, x_remaining, y_testing, y_remaining = train_test_split(
+    x_data,
+    y_data,
+    test_size = _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE,
     shuffle = True)
 
-x_validation, x_testing, y_validation, y_testing = train_test_split(
-    x_remaining, y_remaining,
-    test_size = _DNN_VALIDATION_TESTING_SPLIT_PERCENTAGE,
+# training/validation split:
+x_validation, x_training, y_validation, y_training = train_test_split(
+    x_remaining,
+    y_remaining,
+    test_size = _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE,
     shuffle = True)
 
 print(f"[INFO]: Detected size of x training: {len(x_training)}")
@@ -190,6 +198,23 @@ assert len(x_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch betwe
 
 print(f"[INFO]: Detected size of x testing: {len(y_testing)}")
 assert len(y_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected y-testing size and computed size."
+
+# find their flags
+train_flags = pd.DataFrame({'flag': 'train'}, index = x_training.index)
+validation_flags = pd.DataFrame({'flag': 'validation'}, index = x_validation.index)
+test_flags = pd.DataFrame({'flag': 'test'}, index = x_testing.index)
+
+all_flags = pd.concat([train_flags, validation_flags, test_flags])
+
+test_dataframe = test_dataframe.merge(all_flags, left_index = True, right_index = True, how = 'left')
+
+test_dataframe.to_csv(
+    path_or_buf = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data/dnn_data_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.csv"
+)
+
+if number_of_dnn_training_points <= _BATCH_SIZE:
+    print(f"[WARN]: Number of training points is less than or equal to the batch size. Setting batch size equal to {number_of_dnn_training_points}.")
+    _BATCH_SIZE = number_of_dnn_training_points
 
 ##########################################
 # Finding Observable Values Labeled by
@@ -1086,24 +1111,24 @@ def bkm10_cross_section(
     
     if lep_helicity == 0.0:
         tf_cross_section_km15 = 0.5 * (
-            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
+            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + bh_km15_minus_beam +
                 dvcs_km15_plus_beam + dvcs_km15_minus_beam +
-                interference_km15_plus_beam + interference_km15_minus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2)))
+                interference_km15_plus_beam + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == 1.0:
         tf_cross_section_km15 = (
-            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
+            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + 0.0 +
                 dvcs_km15_plus_beam + 0.0 +
-                interference_km15_plus_beam + 0.0) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2)))
+                interference_km15_plus_beam + 0.0) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == -1.0:
         tf_cross_section_km15 = (
-            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
+            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 0.0 + bh_km15_minus_beam +
                 0.0 + dvcs_km15_minus_beam +
-                0.0 + interference_km15_minus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2)))
+                0.0 + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     return tf_cross_section_km15
 
@@ -1113,7 +1138,7 @@ def bkm10_bsa(
 
     if target_polar == 1.0:
         # [TODO]: Code polarized target coefficients. @Woofmagic
-        raise NotImplementedError("[ERROR]: NO POLARIZED TARGET YET!")
+        raise NotImplementedError("NO POLARIZED TARGET YET!")
     
     bh_km15_plus_beam = bh_squared(
         +1.0, target_polar, q_sq, xb, t, ep, y, k, f1, f2, phi, p1, p2)
@@ -1141,13 +1166,9 @@ def bkm10_bsa(
         q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2, 
         cff_re_h, cff_re_ht, cff_re_e, cff_im_h, cff_im_ht, cff_im_e, use_ww)
     
-    cross_section_plus_beam = (_CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
-                bh_km15_plus_beam + dvcs_km15_plus_beam + interference_km15_plus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2))
-                )
-    
-    cross_section_minus_beam = (_CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*(
-                bh_km15_minus_beam + dvcs_km15_minus_beam + interference_km15_minus_beam) / (16. * tf.square(tf.constant(np.pi)) * q_sq * tf.sqrt(1. + ep**2))
-                )
+
+    cross_section_plus_beam = bh_km15_plus_beam + dvcs_km15_plus_beam + interference_km15_plus_beam
+    cross_section_minus_beam = bh_km15_minus_beam + dvcs_km15_minus_beam + interference_km15_minus_beam
 
     tf_bsa = ((cross_section_plus_beam - cross_section_minus_beam) / (cross_section_plus_beam + cross_section_minus_beam))
         
@@ -1266,9 +1287,9 @@ dnn_model.save(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/replicas/replica_{repli
 training_loss_data = dnn_model_history.history["loss"]
 validation_loss_data = dnn_model_history.history["val_loss"]
 
-loss, accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
-print(f"[NOTE]: Test Loss for Replica {replica_number}: {loss}")
-print(f"[NOTE]: Test Accuracy for Replica {replica_number}: {accuracy}")
+testing_loss, testing_accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
+print(f"Test Loss for Replica {replica_number}: {testing_loss}")
+print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
 
 curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
 log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
@@ -1288,11 +1309,11 @@ log_curves_ax.legend(fontsize = 15)
 
 curves_ax.set_xlabel("Epoch", fontsize = 15)
 curves_ax.set_ylabel("MSE", fontsize = 15)
-curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {loss:.3f}$, Eval. Accuracy $= {accuracy:.3f})$", fontsize = 15)
+curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
 
 log_curves_ax.set_xlabel("Epoch", fontsize = 15)
 log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
-log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {loss:.3f}$, Eval. Accuracy $= {accuracy:.3f})$", fontsize = 15)
+log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
 
 curves_fig.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
 curves_fig.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
