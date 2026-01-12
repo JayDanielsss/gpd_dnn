@@ -141,7 +141,7 @@ km15_cff_string = (
 
 STARTING_PHI_VALUE_IN_DEGREES = test_dataframe['phi'].min()
 ENDING_PHI_VALUE_IN_DEGREES = test_dataframe['phi'].max()
-NUMBER_OF_PHI_POINTS = test_dataframe[test_dataframe['phi'].notna()]
+NUMBER_OF_PHI_POINTS = test_dataframe['phi'].nunique()
 
 print(f"[INFO]: Starting value of phi: {STARTING_PHI_VALUE_IN_DEGREES}")
 print(f"[INFO]: Ending value of phi: {ENDING_PHI_VALUE_IN_DEGREES}")
@@ -1394,7 +1394,7 @@ predicted_h_bkm10 = DifferentialCrossSection(
             x_Bjorken = FIXED_X_BJORKEN,
             squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
         "cff_inputs": CFFInputs(
-            compton_form_factor_h = CFF_H_KM15,
+            compton_form_factor_h = complex(cff_h_real_mean, cff_h_imag_mean),
             compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
             compton_form_factor_e = CFF_E_KM15,
             compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
@@ -1409,12 +1409,15 @@ bkm10_cross_sections_dnn = predicted_h_bkm10.compute_cross_section(phi_array_in_
 bkm10_bsa_dnn = predicted_h_bkm10.compute_bsa(phi_array_in_radians).real
 
 post_cff_fit_xsec_figure, post_cff_fit_xsec_axis = plt.subplots(1, figsize = (7, 7))
+
 post_cff_fit_xsec_axis.scatter(
     phi_array_in_radians, bkm10_cross_sections_km15,
     s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-post_cff_fit_xsec_axis.scatter(
-    phi_array_in_radians, bkm10_cross_sections_dnn,
-    s = 4., label = "BKM10 Prediction with DNN CFFs", color = "red")
+
+# post_cff_fit_xsec_axis.scatter(
+#     phi_array_in_radians, bkm10_cross_sections_dnn,
+#     s = 4., label = "BKM10 Prediction with DNN CFFs", color = "red")
+
 post_cff_fit_xsec_axis.plot(
     phi_array_in_radians,
     mean_xs,
@@ -1463,16 +1466,15 @@ post_cff_fit_xsec_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
 post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
 post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
-plt.show()
 plt.close(post_cff_fit_xsec_figure)
 
 post_cff_fit_bsa_figure, post_cff_fit_bsa_axis = plt.subplots(1, figsize = (7, 7))  
 post_cff_fit_bsa_axis.scatter(
     phi_array_in_radians, bkm10_bsa_km15,
     s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-post_cff_fit_bsa_axis.scatter(
-    phi_array_in_radians, bkm10_bsa_dnn,
-    s = 4., label = "BKM10 Prediction with XDJ CFFs", color = "red")
+# post_cff_fit_bsa_axis.scatter(
+#     phi_array_in_radians, bkm10_bsa_dnn,
+#     s = 4., label = "BKM10 Prediction with DNN CFFs", color = "red")
 post_cff_fit_bsa_axis.plot(
     phi_array_in_radians,
     mean_bsa,
@@ -1521,7 +1523,156 @@ post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
 post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
 post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
-plt.show()
 plt.close(post_cff_fit_bsa_figure)
+
+predicted_h_bkm10 = DifferentialCrossSection(
+    configuration = {
+        "kinematics": BKM10Inputs(
+            lab_kinematics_k = FIXED_BEAM_ENERGY,
+            squared_Q_momentum_transfer = FIXED_Q_SQUARED,
+            x_Bjorken = FIXED_X_BJORKEN,
+            squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
+        "cff_inputs": CFFInputs(
+            compton_form_factor_h = complex(cff_h_real_mean, cff_h_imag_mean),
+            compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
+            compton_form_factor_e = CFF_E_KM15,
+            compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
+        "target_polarization": 0.0,
+        "lepton_beam_polarization": 0.0,
+        "using_ww": True
+    },
+    verbose = False,
+    debugging = False)
+
+bkm10_cross_sections_dnn = predicted_h_bkm10.compute_cross_section(phi_array_in_radians).real
+bkm10_bsa_dnn = predicted_h_bkm10.compute_bsa(phi_array_in_radians).real
+
+post_cff_fit_xsec_figure, post_cff_fit_xsec_axis = plt.subplots(1, figsize = (7, 7))
+post_cff_fit_xsec_axis.scatter(
+    phi_array_in_radians, bkm10_cross_sections_km15,
+    s = 1., label = "BKM10 Prediction with KM15 CFFs", color = "blue", alpha = 0.8)
+# post_cff_fit_xsec_axis.scatter(
+#     phi_array_in_radians, bkm10_cross_sections_dnn,
+#     s = 1., label = "BKM10 Prediction with DNN CFFs", color = "red", alpha = 0.8)
+post_cff_fit_xsec_axis.plot(
+    phi_array_in_radians,
+    mean_xs,
+    label = r'Replica Average',
+    color = "blue",
+    linewidth = 0.5,
+    linestyle = 'dashed')
+post_cff_fit_xsec_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = xs_max,
+    y2 = xs_min,
+    label = r'Min/Max Bound',
+    color = "lightgray",
+    alpha = 0.2)
+post_cff_fit_xsec_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = xs_percentile_90,
+    y2 = xs_percentile_10,
+    label = r'10/90 \% Bound',
+    color = "gray",
+    alpha = 0.25)
+post_cff_fit_xsec_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = xs_percentile_80,
+    y2 = xs_percentile_20,
+    label = r'20/80 \% Bound',
+    color = "gray",
+    alpha = 0.3)
+post_cff_fit_xsec_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = xs_percentile_70,
+    y2 = xs_percentile_30,
+    label = r'30/70 \% Bound',
+    color = "gray",
+    alpha = 0.35)
+post_cff_fit_xsec_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = xs_percentile_60,
+    y2 = xs_percentile_40,
+    label = r'40/60 \% Bound',
+    color = "gray",
+    alpha = 0.4)
+post_cff_fit_xsec_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
+post_cff_fit_xsec_axis.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
+post_cff_fit_xsec_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
+plt.legend()
+post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
+post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
+plt.close(post_cff_fit_xsec_figure)
+
+post_cff_fit_bsa_figure, post_cff_fit_bsa_axis = plt.subplots(1, figsize = (7, 7))
+post_cff_fit_bsa_axis.scatter(
+    phi_array_in_radians, bkm10_bsa_km15,
+    s = 1., label = "BKM10 Prediction with KM15 CFFs", color = "blue", alpha = 0.9)
+# post_cff_fit_bsa_axis.scatter(
+#     phi_array_in_radians, bkm10_bsa_dnn,
+#     s = 1., label = "BKM10 Prediction with DNN CFFs", color = "red", alpha = 0.9)
+post_cff_fit_bsa_axis.plot(
+    phi_array_in_radians,
+    mean_bsa,
+    label = r'Replica Average',
+    color = "blue",
+    linewidth = 0.5,
+    linestyle = 'dashed')
+post_cff_fit_bsa_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = bsa_max,
+    y2 = bsa_min,
+    label = r'Min/Max Bound',
+    color = "lightgray",
+    alpha = 0.2)
+post_cff_fit_bsa_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = bsa_percentile_90,
+    y2 = bsa_percentile_10,
+    label = r'10/90 \% Bound',
+    color = "gray",
+    alpha = 0.25)
+post_cff_fit_bsa_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = bsa_percentile_80,
+    y2 = bsa_percentile_20,
+    label = r'20/80 \% Bound',
+    color = "gray",
+    alpha = 0.3)
+post_cff_fit_bsa_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = bsa_percentile_70,
+    y2 = bsa_percentile_30,
+    label = r'30/70 \% Bound',
+    color = "gray",
+    alpha = 0.35)
+post_cff_fit_bsa_axis.fill_between(
+    x = phi_array_in_radians,
+    y1 = bsa_percentile_60,
+    y2 = bsa_percentile_40,
+    label = r'40/60 \% Bound',
+    color = "gray",
+    alpha = 0.4)
+post_cff_fit_bsa_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
+post_cff_fit_bsa_axis.set_ylabel(r"BSA", fontsize = 16)
+post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
+plt.legend()
+post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
+post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
+plt.close(post_cff_fit_bsa_figure)
+
+cff_h_correlation_figure, cff_h_correlation_axis = plt.subplots(1, figsize = (7, 7))
+
+cff_h_correlation_axis.scatter(
+    cff_h_real_pred_per_replica, cff_h_imag_pred_per_replica,
+    s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
+
+post_cff_fit_bsa_axis.set_xlabel(r"Rm$[\mathcal{H}]$", fontsize = 16)
+post_cff_fit_bsa_axis.set_ylabel(r"Im$[\mathcal{H}]$", fontsize = 16)
+post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
+plt.legend()
+cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.png")
+cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.eps")
+plt.close(cff_h_correlation_figure)
 
 print(f"[INFO]: End of script reached!")

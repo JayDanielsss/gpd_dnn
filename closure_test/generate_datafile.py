@@ -4,7 +4,7 @@
 # pseudodata for training DNN models down
 # the line.
 # Created: 20260107
-# Last changed: 20260108
+# Last changed: 20260109
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -272,7 +272,7 @@ test_dataframe = pd.DataFrame({
 })
 
 test_dataframe.to_csv(
-    path_or_buf = f"{SCRATCH_PATH}/version_v{VERSION_NUMBER}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
+    path_or_buf = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
 )
 
 print(f"[INFO]: End of script reached!")
