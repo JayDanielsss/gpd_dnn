@@ -4,7 +4,7 @@
 # pseudodata for training DNN models down
 # the line.
 # Created: 20260107
-# Last changed: 20260109
+# Last changed: 20260111
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -40,7 +40,6 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
 
 import gepard as g
 from gepard.fits import th_KM15
