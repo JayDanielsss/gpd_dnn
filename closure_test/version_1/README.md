@@ -2,9 +2,9 @@ Information about the various iterations of this project.
 
 Versions:
 
-## Version 3_1:
+## Version 1_1:
 
-`version_3_1` is run with the `SimultaneousFitLoss` class active with weights $w_{\text{BSA}} = 0.5$ and $w_{d^{4}\sigma} = 0.5$.
+`version_1_1` is run with the `SimultaneousFitLoss` class active but importantly sets the weight in front of the `\text{BSA}` observable to $0$ (which means we set the weight in front of the cross-section observable to $1$).
 
 ### DNN Hyperparameters:
 Replicas: 20
@@ -23,7 +23,6 @@ Testing points: $72$
 Test/Train split: $20/80$
 Train/Validation split: $80/20$
 Sum: $231 + 57 + 72 = 360$
-Observables: $\text{BSA}$, $d^{4}\sigma$
+Observables: $d^{4}\sigma$
 
 ### Comments:
-1. Confirmed same issue: $\text{BSA}$ fit well, but $\d^{4}\sigma$ is systematically offset during the fitting.

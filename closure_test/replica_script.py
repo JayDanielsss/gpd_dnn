@@ -1,8 +1,9 @@
 ##########################################
 # FILE INFORMATION:
-# Purpose: runs *a* replica based
+# Purpose: runs *a* replica based on a single 
+# DNN architecture.
 # Created: 20260107
-# Last changed: 20260111
+# Last changed: 20260120
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -31,9 +32,6 @@ _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE = 0.8
 
 # of the above 80% temporary, 80% training, 20% validation
 _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE = 0.8
-
-print(f"[NOTE]: Testing/Temporary Split is {_DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_testing_points} testing points (with ceiling).")
-print(f"[NOTE]: Training/Validation Split is {_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
 
 _INITIALIZER_MINIMUM_VALUE = -0.1
 _INITIALIZER_MAXMIMUM_VALUE = 0.1
@@ -1178,8 +1176,8 @@ class SimultaneousObservablesLoss(tf.keras.losses.Loss):
     def __init__(self, name = "simultaneous_observables_loss"):
         super().__init__(name = name)
 
-        self._OBSERVABLE_WEIGHT_1 = 0.5
-        self._OBSERVABLE_WEIGHT_2 = 0.5
+        self._OBSERVABLE_WEIGHT_1 = 0.5 * 1.0
+        self._OBSERVABLE_WEIGHT_2 = 0.5 * 0.0
         
     def call(self, true_values, predicted_values):
         

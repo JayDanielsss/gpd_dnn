@@ -2,7 +2,7 @@
 # FILE INFORMATION:
 # Purpose: averages over all the replicas
 # Created: 20260107
-# Last changed: 20260112
+# Last changed: 20260120
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -37,6 +37,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from scipy.stats import norm
+import corner
 
 from bkm10_lib.core import DifferentialCrossSection
 from bkm10_lib.inputs import BKM10Inputs
@@ -976,21 +977,21 @@ def bkm10_cross_section(
     
     if lep_helicity == 0.0:
         tf_cross_section_km15 = 0.5 * (
-            _CONVERSION_FACTOR*_QED_FINE_STRUCTURE**3*xb*y*y*(
+            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + bh_km15_minus_beam +
                 dvcs_km15_plus_beam + dvcs_km15_minus_beam +
                 interference_km15_plus_beam + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == 1.0:
         tf_cross_section_km15 = (
-            _CONVERSION_FACTOR*_QED_FINE_STRUCTURE**3*xb*y*y*(
+            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + 0.0 +
                 dvcs_km15_plus_beam + 0.0 +
                 interference_km15_plus_beam + 0.0) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == -1.0:
         tf_cross_section_km15 = (
-            _CONVERSION_FACTOR*_QED_FINE_STRUCTURE**3*xb*y*y*(
+            _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 0.0 + bh_km15_minus_beam +
                 0.0 + dvcs_km15_minus_beam +
                 0.0 + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
@@ -1669,5 +1670,34 @@ plt.legend()
 cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.png")
 cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(cff_h_correlation_figure)
+
+cff_corner_plot_data = np.vstack([cff_h_real_pred_per_replica, cff_h_imag_pred_per_replica]).T
+
+cff_corner_plot = corner.corner(
+    cff_corner_plot_data,
+    labels = [
+        r"Re$[\mathcal{H}]$",
+        r"Im$[\mathcal{H}]$",
+        ],
+    plot_datapoints = True,
+    show_titles = True,
+    title_kwargs = {"fontsize": 14},
+    label_kwargs = {"fontsize": 14}, 
+    hist_kwargs = {
+        'fc': 'skyblue',
+        'ec': 'black',
+        'histtype': 'bar',
+        'lw': '0.9',
+        },
+    data_kwargs = {
+        "alpha": 0.5, 
+        "label": "BKM10 Prediction with KM15 CFFs"
+        },
+    title_fmt = ".3g",
+    figsize = (9, 9)
+)
+
+cff_corner_plot.savefig(f"./version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.png")
+cff_corner_plot.savefig(f"./version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.eps")
 
 print(f"[INFO]: End of script reached!")

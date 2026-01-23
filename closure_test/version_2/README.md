@@ -2,10 +2,27 @@ Information about the various iterations of this project.
 
 Versions:
 
-1. 10 replicas, 750 epochs, 4 hidden layers with 10, 10, 10, 10 sigmoid nodes each, standard BKM10-generated $d^{4}\sigma$ data: 324 training, 32 validation, 4 testing.
-2. 10 replicas, 750 epochs, 4 hidden layers with 10, 10, 10, 10 tanh nodes each, standard BKM10-generated $d^{4}\sigma$ data: 324 training, 32 validation, 4 testing.
-3. 10 replicas, 750 epochs, 4 hidden layers with 10, 10, 10, 10 ReLU nodes each, standard BKM10-generated $d^{4}\sigma$ data: 324 training, 32 validation, 4 testing.
+## Version 2_1:
 
-Comments:
+`version_2_1` is run with the `SimultaneousFitLoss` class active but importantly sets the weight in front of the *cross-section* observable to $0$. (So, we also set the weight in front of the $\text{BSA}$ observable to $1$).
 
-None yet.
+### DNN Hyperparameters:
+Replicas: 20
+Epochs (without EarlyStop): 750
+Input nodes: 4
+Output nodes: 2
+Hidden layers: 1
+Nodes per layer: 10
+Activation per layer: [ReLU]
+Final activation: Linear
+
+### Data:
+Training points: $231$
+Validation points: $57$
+Testing points: $72$
+Test/Train split: $20/80$
+Train/Validation split: $80/20$
+Sum: $231 + 57 + 72 = 360$
+Observables: $\text{BSA}$
+
+### Comments:
