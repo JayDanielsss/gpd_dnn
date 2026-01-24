@@ -1,5 +1,6 @@
 """
-Stuff.
+Run this script to generate several plots of the 
+observables that can be calculated using the BKM10 formalism.
 """
 
 import matplotlib.pyplot as plt
@@ -383,28 +384,48 @@ def dvcs_squared(
     cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
 
     if (target_polar == -0.5 or target_polar == +0.5):
-        raise NotImplementedError("[ERROR]: NO POLARIZED TARGET YET!")
-    
-    if lep_helicity == 0.0:
-        dvcs_c0 = 0.5 * (
-            dvcs_unp_c0(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
-            dvcs_unp_c0(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
-        )
+        if lep_helicity == 0.0:
+            dvcs_c0 = 0.5 * (
+                dvcs_lp_c0(+1.0, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
+                dvcs_lp_c0(-1.0, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            )
 
-        dvcs_c1 = 0.5 * (
-            dvcs_unp_c1(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
-            dvcs_unp_c1(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
-        )
+            dvcs_c1 = 0.5 * (
+                dvcs_lp_c1(+1.0, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
+                dvcs_lp_c1(+1.0, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            )
 
-        dvcs_s1 = 0.5 * (
-            dvcs_unp_s1(1.0, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
-            dvcs_unp_s1(-1.0, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
-        )
+            dvcs_s1 = 0.5 * (
+                dvcs_lp_s1(+1.0, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
+                dvcs_lp_s1(+1.0, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            )
 
-    else:
-        dvcs_c0 = dvcs_unp_c0(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
-        dvcs_c1 = dvcs_unp_c1(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
-        dvcs_s1 = dvcs_unp_s1(lep_helicity, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+        else:
+            dvcs_c0 = dvcs_lp_c0(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            dvcs_c1 = dvcs_lp_c1(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            dvcs_s1 = dvcs_lp_s1(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+
+    elif target_polar == 0.0:
+        if lep_helicity == 0.0:
+            dvcs_c0 = 0.5 * (
+                dvcs_unp_c0(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
+                dvcs_unp_c0(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            )
+
+            dvcs_c1 = 0.5 * (
+                dvcs_unp_c1(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
+                dvcs_unp_c1(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            )
+
+            dvcs_s1 = 0.5 * (
+                dvcs_unp_s1(1.0, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww) +
+                dvcs_unp_s1(-1.0, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            )
+
+        else:
+            dvcs_c0 = dvcs_unp_c0(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            dvcs_c1 = dvcs_unp_c1(q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            dvcs_s1 = dvcs_unp_s1(lep_helicity, q_sq, xb, t, ep, y, xi, k, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
 
     return (
         (dvcs_c0 + 
@@ -1841,13 +1862,13 @@ def interference_amplitude(
 
         else:
             
-            i_c0 = i_lp_c0(q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, cff_re_h, cff_re_ht, cff_re_e, use_ww)
-            i_c1 = i_lp_c1(q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_re_h, cff_re_ht, cff_re_e, use_ww)
-            i_c2 = i_lp_c2(q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_re_h, cff_re_ht, cff_re_e, use_ww)
-            i_c3 = 0.0
-            i_s1 = i_lp_s1(lep_helicity, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
-            i_s2 = i_lp_s2(lep_helicity, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
-            i_s3 = i_lp_s3(lep_helicity, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
+            i_c0 = i_lp_c0(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, cff_re_h, cff_re_ht, cff_re_e, use_ww)
+            i_c1 = i_lp_c1(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_re_h, cff_re_ht, cff_re_e, use_ww)
+            i_c2 = i_lp_c2(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, cff_re_h, cff_re_ht, cff_re_e, cff_re_et, use_ww)
+            i_c3 = 0.5 * 0.0
+            i_s1 = i_lp_s1(target_polar, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            i_s2 = i_lp_s2(lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+            i_s3 = i_lp_s3(target_polar, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
 
     elif target_polar == 0.0:
         if lep_helicity == 0.0:
@@ -1989,6 +2010,34 @@ def bkm10_tsa(
         (plus_longitudinally_polarized_cross_section + minus_longitudinally_polarized_cross_section))
         
     return tf_bsa
+
+def bkm10_dsa(
+    q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+    cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
+
+    plus_beam_plus_lp_target_xsec = bkm10_cross_section(
+        +1.0, +0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+    
+    plus_beam_minus_lp_target_xsec = bkm10_cross_section(
+        +1.0, -0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+    
+    minus_beam_plus_lp_target_xsec = bkm10_cross_section(
+        -1.0, +0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+    
+    minus_beam_minus_lp_target_xsec = bkm10_cross_section(
+        -1.0, -0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+    
+    tf_bsa = (
+        ((plus_beam_plus_lp_target_xsec - plus_beam_minus_lp_target_xsec) - (minus_beam_plus_lp_target_xsec - minus_beam_minus_lp_target_xsec)) / 
+        (plus_beam_plus_lp_target_xsec + plus_beam_minus_lp_target_xsec + minus_beam_plus_lp_target_xsec + minus_beam_minus_lp_target_xsec)
+        )
+        
+    return tf_bsa
+
 
 ###########################
 # CHECKING THE VALUES
@@ -2342,6 +2391,10 @@ unp_beam_unp_target_tsa_xdj = bkm10_tsa(
     TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, TEST_IM_CFF_H, TEST_IM_CFF_HT, TEST_IM_CFF_E, TEST_IM_CFF_ET
 )
 
+dsa_xdj = bkm10_dsa(
+    TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_XI, TEST_K, TEST_F1, TEST_F2, TEST_K_TILDE, TEST_T_PRIME, phi_array_in_radians, TEST_P1, TEST_P2,
+    TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, TEST_IM_CFF_H, TEST_IM_CFF_HT, TEST_IM_CFF_E, TEST_IM_CFF_ET)
+
 xsec_test_fig, xsec_test_ax = plt.subplots(1, 1, figsize = (14, 7))
 xsec_test_ax.scatter(phi_array_in_radians, unp_beam_unp_target_cross_section_xdj, color = "blue", s = 2., label = "TF(KM15)")
 xsec_test_ax.set_xlabel(r"Radians ($\phi$)", fontsize = 14)
@@ -2362,3 +2415,10 @@ tsa_test_ax.set_xlabel(r"Radians ($\phi$)", fontsize = 14)
 tsa_test_ax.legend()
 plt.show()
 plt.close(tsa_test_fig)
+
+dsa_test_fig, dsa_test_ax = plt.subplots(1, 1, figsize = (14, 7))
+dsa_test_ax.scatter(phi_array_in_radians, dsa_xdj, color = "blue", s = 2., label = "TF(KM15)")
+dsa_test_ax.set_xlabel(r"Radians ($\phi$)", fontsize = 14)
+dsa_test_ax.legend()
+plt.show()
+plt.close(dsa_test_fig)
