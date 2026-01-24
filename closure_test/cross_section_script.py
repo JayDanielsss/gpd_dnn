@@ -265,8 +265,8 @@ def curly_c_real_lp(
 
     first_line=(4.*(1.-xb+(((3.-2.*xb)*q_sq + t))*ep*ep/(4.*(q_sq+xb*t)))*(cff_re_h*cff_re_ht_star-cff_im_ht*cff_im_h_star+cff_re_ht*cff_re_h_star-cff_im_h*cff_im_ht_star))
     second_line=-xb*xb*(q_sq-xb*t*(1.-2.*xb))*(cff_re_h*cff_re_et_star-cff_im_et*cff_im_h_star+cff_re_et*cff_re_h_star-cff_im_h*cff_im_et_star+cff_re_ht*cff_re_e_star-cff_im_e*cff_im_ht_star+cff_re_e*cff_re_ht_star-cff_im_ht*cff_im_e_star)/(q_sq+xb*t)
-    third_line=-4.*((1.-xb)*(q_sq+xb*t)*t)+(q_sq+t)**2*ep*ep*xb*(cff_re_h*cff_re_et_star-cff_im_et*cff_im_h_star+cff_re_et*cff_re_h_star-cff_im_h*cff_im_et_star)/(2.*q_sq*(q_sq+xb*t))
-    fourth_line=-(2.-xb)*q_sq+xb*t*((xb*xb*(q_sq*t)**2)/(2.*q_sq*((2.-xb)*q_sq+xb*t))+(t/(4.*_MASS_OF_PROTON_IN_GEV**2)))*(cff_re_e*cff_re_et_star-cff_im_e*cff_im_et_star+cff_re_et*cff_re_e_star-cff_im_et*cff_im_e_star)*xb
+    third_line=-xb*((4.*(1.-xb)*(q_sq+xb*t)*t+ep*ep*(q_sq+t)**2)*(cff_re_ht*cff_re_e_star-cff_im_e*cff_im_ht_star+cff_re_e*cff_re_ht_star-cff_im_ht*cff_im_e_star))/(2.*q_sq*(q_sq+xb*t))
+    fourth_line=-xb*((q_sq*(2.-xb)+xb*t)/(q_sq+xb*t))*((xb*xb*(q_sq+t)**2)/(2*q_sq*(q_sq*(2.-xb)+xb*t)) + t/(4.*_MASS_OF_PROTON_IN_GEV**2))*(cff_re_e*cff_re_et_star-cff_im_e*cff_im_et_star+cff_re_et*cff_re_e_star-cff_im_et*cff_im_e_star)
 
     return ((first_line+second_line+third_line+fourth_line)*q_sq*(q_sq+xb*t)/(np.sqrt(1.+ep*ep)*((2.-xb)*q_sq+xb*t)**2))
 
@@ -279,8 +279,8 @@ def curly_c_imag_lp(
 
     first_line=(4.*(1.-xb+(((3.-2.*xb)*q_sq + t))*ep*ep/(4.*(q_sq+xb*t)))*(cff_im_h*cff_re_ht_star+cff_re_ht*cff_im_h_star+cff_im_ht*cff_re_h_star+cff_re_h*cff_im_ht_star))
     second_line=-xb*xb*(q_sq-xb*t*(1.-2.*xb))*(cff_im_h*cff_re_et_star+cff_re_et*cff_im_h_star+cff_im_et*cff_re_h_star+cff_re_h*cff_im_et_star+cff_im_ht*cff_re_e_star+cff_re_e*cff_im_ht_star+cff_im_e*cff_re_ht_star+cff_re_ht*cff_im_e_star)/(q_sq+xb*t)
-    third_line=-4.*((1.-xb)*(q_sq+xb*t)*t)+(q_sq+t)**2*ep*ep*xb*(cff_im_h*cff_re_et_star+cff_re_et*cff_im_h_star+cff_im_et*cff_re_h_star+cff_re_h*cff_im_et_star)/(2.*q_sq*(q_sq+xb*t))
-    fourth_line=-(2.-xb)*q_sq+xb*t*((xb*xb*(q_sq*t)**2)/(2.*q_sq*((2.-xb)*q_sq+xb*t))+(t/(4.*_MASS_OF_PROTON_IN_GEV**2)))*(cff_im_e*cff_re_et_star+cff_re_e*cff_im_et_star+cff_im_et*cff_re_e_star+cff_re_et*cff_im_e_star)*xb
+    third_line=-xb*((4.*(1.-xb)*(q_sq+xb*t)*t+ep*ep*(q_sq+t)**2)*(cff_im_h*cff_re_et_star+cff_re_et*cff_im_h_star+cff_im_et*cff_re_h_star+cff_re_h*cff_im_et_star)/(2.*q_sq*(q_sq+xb*t)))
+    fourth_line=-xb*((q_sq*(2.-xb)+xb*t)/(q_sq+xb*t))*((xb*xb*(q_sq+t)**2)/(2*q_sq*(q_sq*(2.-xb)+xb*t)) + t/(4.*_MASS_OF_PROTON_IN_GEV**2))*(cff_im_e*cff_re_et_star+cff_re_e*cff_im_et_star+cff_im_et*cff_re_e_star+cff_re_et*cff_im_e_star)
 
     return ((first_line+second_line+third_line+fourth_line)*q_sq*(q_sq+xb*t)/(np.sqrt(1.+ep*ep)*((2.-xb)*q_sq+xb*t)**2))
 
@@ -339,7 +339,7 @@ def dvcs_lp_c0(
     cff_re_h: float,cff_re_ht: float,cff_re_e: float,cff_re_et: float,cff_im_h: float,cff_im_ht: float,cff_im_e: float,cff_im_et: float,
     use_ww: bool = True) -> float:
 
-    prefactor = 2.*lep_helicity*target_polar*y**(2.-y)/np.sqrt(1.+ep*ep)
+    prefactor = 2.*lep_helicity*target_polar*y*(2.-y)/np.sqrt(1.+ep*ep)
     first_term_curlyc = curly_c_real_lp(
         q_sq, xb, t, ep,
         cff_re_h, cff_re_ht, cff_re_e, cff_re_et,
@@ -1492,21 +1492,17 @@ def i_s_lp_a_0p_1(
     return s_1_zero_plus_A_LP
 
 def i_s_lp_0p_2(
-    lep_helicity: float,
     target_polar: float,
     q_sq: float, 
     xb: float, 
     t: float,
     ep: float,
-    y: float) -> float:
-    root_one_plus_epsilon_squared = np.sqrt(1. + ep**2)
-    t_over_Q_squared = t / q_sq
-    one_plus_root_epsilon_stuff = 1. + root_one_plus_epsilon_squared
-    first_multiplicative_factor = (-1. * one_plus_root_epsilon_stuff + 2.) - t_over_Q_squared * (one_plus_root_epsilon_stuff - 2. * xb)
-    second_multiplicative_factor = xb * t_over_Q_squared - (ep**2 * (1. - t_over_Q_squared) / 2.)
-    prefactor = -4. * lep_helicity * target_polar * y * (1. - y - (y**2 * ep**2 / 4.)) / root_one_plus_epsilon_squared**5
-    c_2_plus_plus_LP = prefactor * first_multiplicative_factor * second_multiplicative_factor
-    return c_2_plus_plus_LP
+    y: float, 
+    k: float) -> float:
+    root_combination_of_y_and_epsilon = np.sqrt(1. - y - (y**2 * ep**2 / 4.))
+    prefactor = 8. * np.sqrt(2.) * target_polar * k * (2. - y )/ np.sqrt((1. + ep**2)**5)
+    s_2_zero_plus_LP = prefactor * root_combination_of_y_and_epsilon * (1. + (xb * t / q_sq))
+    return s_2_zero_plus_LP
 
 def i_s_lp_v_0p_2(
     target_polar: float,
@@ -1776,7 +1772,7 @@ def i_lp_s2(
     i_s_pp_v_2 = i_s_lp_v_pp_2(target_polar, q_sq, xb, t, ep, y, tprime, ktilde)
     i_s_pp_a_2 = i_s_lp_a_pp_2(target_polar, q_sq, xb, t, ep, y, tprime, ktilde)
 
-    i_s_0p_2 = i_s_lp_0p_2(lep_helicity, target_polar, q_sq, xb, t, ep, y)
+    i_s_0p_2 = i_s_lp_0p_2(target_polar, q_sq, xb, t, ep, y, k)
     i_s_0p_v_2 = i_s_lp_v_0p_2(target_polar, q_sq, xb, t, ep, y, k)
     i_s_0p_a_2 = i_s_lp_a_0p_2(target_polar, q_sq, xb, t, ep, y, k)
     
@@ -1797,7 +1793,7 @@ def i_lp_s3(
 
     i_s_pp_3 = i_s_lp_pp_3(target_polar, q_sq, xb, ep, y, tprime, k)
     i_s_pp_v_3 = i_s_lp_v_pp_3(target_polar, q_sq, xb, t, ep, y, tprime, k)
-    i_s_pp_a_3 = i_s_lp_a_pp_3(target_polar, q_sq, xb, t, ep, y, tprime, ktilde)
+    i_s_pp_a_3 = i_s_lp_a_pp_3(target_polar, q_sq, xb, t, ep, y, tprime, k)
 
     i_s_0p_3 = 0.0
     i_s_0p_v_3 = 0.0
@@ -1839,8 +1835,8 @@ def interference_amplitude(
             )
 
             i_s3 = 0.5 * (
-                i_lp_s3(1.0, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww) +
-                i_lp_s3(-1.0, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
+                i_lp_s3(target_polar, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww) +
+                i_lp_s3(target_polar, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
             )
 
         else:
@@ -1851,7 +1847,7 @@ def interference_amplitude(
             i_c3 = 0.0
             i_s1 = i_lp_s1(lep_helicity, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
             i_s2 = i_lp_s2(lep_helicity, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
-            i_s3 = i_lp_s3(lep_helicity, q_sq, xb, t, ep, y, xi, k, tprime, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
+            i_s3 = i_lp_s3(lep_helicity, q_sq, xb, t, ep, y, xi, tprime, k, f1, f2, ktilde, cff_im_h, cff_im_ht, cff_im_e, use_ww)
 
     elif target_polar == 0.0:
         if lep_helicity == 0.0:
@@ -2105,17 +2101,17 @@ curly_c_real_f_fstar_lp = curly_c_real_lp(
         TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, TEST_IM_CFF_H, TEST_IM_CFF_HT, TEST_IM_CFF_E, TEST_IM_CFF_ET,
         TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, -TEST_IM_CFF_H, -TEST_IM_CFF_HT, -TEST_IM_CFF_E, -TEST_IM_CFF_ET)
 
-curly_c_imag_f_fstar_lp = curly_c_imag_lp(
-        TEST_QSQ, TEST_XB, TEST_T, TEST_EP,
-        TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, TEST_IM_CFF_H, TEST_IM_CFF_HT, TEST_IM_CFF_E, TEST_IM_CFF_ET,
-        TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, -TEST_IM_CFF_H, -TEST_IM_CFF_HT, -TEST_IM_CFF_E, -TEST_IM_CFF_ET)
-
-curly_c_imag_feff_feffstar_lp = curly_c_imag_lp(
+curly_c_real_feff_fstar_lp = curly_c_real_lp(
         TEST_QSQ, TEST_XB, TEST_T, TEST_EP,
         f_eff(TEST_XI, TEST_REAL_CFF_H), f_eff(TEST_XI, TEST_REAL_CFF_HT), f_eff(TEST_XI, TEST_REAL_CFF_E), f_eff(TEST_XI, TEST_REAL_CFF_ET),
         f_eff(TEST_XI, TEST_IM_CFF_H), f_eff(TEST_XI, TEST_IM_CFF_HT), f_eff(TEST_XI, TEST_IM_CFF_E), f_eff(TEST_XI, TEST_IM_CFF_ET),
+        TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, -TEST_IM_CFF_H, -TEST_IM_CFF_HT, -TEST_IM_CFF_E, -TEST_IM_CFF_ET)
+
+curly_c_imag_feff_fstar_lp = curly_c_imag_lp(
+        TEST_QSQ, TEST_XB, TEST_T, TEST_EP,
         f_eff(TEST_XI, TEST_REAL_CFF_H), f_eff(TEST_XI, TEST_REAL_CFF_HT), f_eff(TEST_XI, TEST_REAL_CFF_E), f_eff(TEST_XI, TEST_REAL_CFF_ET),
-        -f_eff(TEST_XI, TEST_IM_CFF_H), -f_eff(TEST_XI, TEST_IM_CFF_HT), -f_eff(TEST_XI, TEST_IM_CFF_E), -f_eff(TEST_XI, TEST_IM_CFF_ET))
+        f_eff(TEST_XI, TEST_IM_CFF_H), f_eff(TEST_XI, TEST_IM_CFF_HT), f_eff(TEST_XI, TEST_IM_CFF_E), f_eff(TEST_XI, TEST_IM_CFF_ET),
+        TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, -TEST_IM_CFF_H, -TEST_IM_CFF_HT, -TEST_IM_CFF_E, -TEST_IM_CFF_ET)
 
 dvcs_c0_lp = dvcs_lp_c0(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_XI, TEST_K,
                   TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, TEST_IM_CFF_H, TEST_IM_CFF_HT, TEST_IM_CFF_E, TEST_IM_CFF_ET)
@@ -2138,6 +2134,10 @@ i_c_pp_2_lp = i_c_lp_pp_2(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y)
 i_c_v_pp_2_lp = i_c_lp_v_pp_2(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y)
 i_c_a_pp_2_lp = i_c_lp_a_pp_2(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y)
 
+i_c_pp_3_lp = 0.0
+i_c_v_pp_3_lp = 0.0
+i_c_a_pp_3_lp = 0.0
+
 i_c_0p_0_lp = i_c_lp_0p_0(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 i_c_v_0p_0_lp = i_c_lp_v_0p_0(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 i_c_a_0p_0_lp = i_c_lp_a_0p_0(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
@@ -2151,7 +2151,7 @@ i_c_v_0p_2_lp = i_c_lp_v_0p_2(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST
 i_c_a_0p_2_lp = i_c_lp_a_0p_2(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 
 i_s_pp_1_lp = i_s_lp_pp_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
-i_s_v_pp_1_lp = i_s_lp_v_pp_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_T_PRIME, TEST_K_TILDE)
+i_s_v_pp_1_lp = i_s_lp_v_pp_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_T_PRIME, TEST_K)
 i_s_a_pp_1_lp = i_s_lp_a_pp_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 
 i_s_pp_2_lp = i_s_lp_pp_2(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_T_PRIME, TEST_K_TILDE)
@@ -2166,7 +2166,7 @@ i_s_0p_1_lp = i_s_lp_0p_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_
 i_s_v_0p_1_lp = i_s_lp_v_0p_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K_TILDE)
 i_s_a_0p_1_lp = i_s_lp_a_0p_1(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y)
 
-i_s_0p_2_lp = i_s_lp_0p_2(1.0, 0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y)
+i_s_0p_2_lp = i_s_lp_0p_2(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 i_s_v_0p_2_lp = i_s_lp_v_0p_2(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 i_s_a_0p_2_lp = i_s_lp_a_0p_2(0.5, TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_K)
 
@@ -2255,13 +2255,13 @@ print(f"BH c0 LP: {bh_c0_lp}") # correct, 2026/01/23
 print(f"BH c1 LP: {bh_c1_lp}") # correct, 2026/01/23
 print(f"BH c2 LP: {bh_c2_lp}") # correct, 2026/01/23
 
-print(f"Re[Curly C(F | F*)] = {curly_c_real_f_fstar_lp}") # correct, 2026/01/23
-print(f"Im[Curly C(F | F*)] = {curly_c_imag_f_fstar_lp}") # correct, 2026/01/23
-print(f"Im[Curly C(Feff | Feff*)] = {curly_c_imag_feff_feffstar_lp}") # correct, 2026/01/23
+print(f"Curly C(F | F*) = {curly_c_real_f_fstar_lp}")  # correct, 2026/01/24
+print(f"Re[Curly C(Feff | F*)] = {curly_c_real_feff_fstar_lp}") # correct, 2026/01/24
+print(f"Im[Curly C(Feff | F*)] = {curly_c_imag_feff_fstar_lp}") # correct, 2026/01/24
 
-print(f"DVCS c0 LP: {dvcs_c0_lp}") # correct, 2026/01/23
-print(f"DVCS c1 LP: {dvcs_c1_lp}") # correct, 2026/01/23
-print(f"DVCS s1 LP: {dvcs_s1_lp}") # correct, 2026/01/23
+print(f"DVCS c0 LP: {dvcs_c0_lp}") # correct, 2026/01/24
+print(f"DVCS c1 LP: {dvcs_c1_lp}") # correct, 2026/01/24
+print(f"DVCS s1 LP: {dvcs_s1_lp}") # correct, 2026/01/24
 
 print(f"Int C++(n = 0) LP: {i_c_pp_0_lp}") # correct, 2026/01/23
 print(f"Int CV++(n = 0) LP: {i_c_v_pp_0_lp}") # correct, 2026/01/23
@@ -2272,12 +2272,12 @@ print(f"Int CV++(n = 1) LP: {i_c_v_pp_1_lp}") # correct, 2026/01/23
 print(f"Int CA++(n = 1) LP: {i_c_a_pp_1_lp}") # correct, 2026/01/23
 
 print(f"Int C++(n = 2) LP: {i_c_pp_2_lp}") # correct, 2026/01/23
-print(f"Int CV++(n = 2) LP: {i_c_v_pp_2_lp}") # correct, 2026/01/23
+print(f"Int CV++(n = 2) LP: {i_c_v_pp_2_lp}") # slightly off at 10e-8
 print(f"Int CA++(n = 2) LP: {i_c_a_pp_2_lp}") # correct, 2026/01/23
 
-print(f"Int C++(n = 3) LP: {0}") # correct, 2026/01/23
-print(f"Int CV++(n = 3) LP: {0}") # correct, 2026/01/23
-print(f"Int CA++(n = 3) LP: {0}") # correct, 2026/01/23
+print(f"Int C++(n = 3) LP: {i_c_pp_3_lp}") # correct, 2026/01/23
+print(f"Int CV++(n = 3) LP: {i_c_v_pp_3_lp}") # correct, 2026/01/23
+print(f"Int CA++(n = 3) LP: {i_c_a_pp_3_lp}") # correct, 2026/01/23
 
 print(f"Int C0+(n = 0) LP: {i_c_0p_0_lp}") # correct, 2026/01/23
 print(f"Int CV0+(n = 0) LP: {i_c_v_0p_0_lp}") # correct, 2026/01/23
@@ -2298,6 +2298,10 @@ print(f"Int SA++(n = 1) LP: {i_s_a_pp_1_lp}") # correct, 2026/01/23
 print(f"Int S++(n = 2) LP: {i_s_pp_2_lp}") # correct, 2026/01/23
 print(f"Int SV++(n = 2) LP: {i_s_v_pp_2_lp}") # correct, 2026/01/23
 print(f"Int SA++(n = 2) LP: {i_s_a_pp_2_lp}") # correct, 2026/01/23
+
+print(f"Int S++(n = 3) LP: {i_s_pp_3_lp}") # correct, 2026/01/23
+print(f"Int SV++(n = 3) LP: {i_s_v_pp_3_lp}") # correct, 2026/01/23
+print(f"Int SA++(n = 3) LP: {i_s_a_pp_3_lp}") # correct, 2026/01/23
 
 print(f"Int S0+(n = 1) LP: {i_s_0p_1_lp}") # correct, 2026/01/23
 print(f"Int SV0+(n = 1) LP: {i_s_v_0p_1_lp}") # correct, 2026/01/23
