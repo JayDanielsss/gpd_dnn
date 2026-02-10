@@ -1975,10 +1975,6 @@ def bkm10_bsa(
     lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
     cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
 
-    if (target_polar == -0.5 or target_polar == +0.5):
-        # [TODO]: Code polarized target coefficients. @Woofmagic
-        raise NotImplementedError("NO POLARIZED TARGET YET!")
-
     plus_beam_cross_section = bkm10_cross_section(
         +1.0, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
         cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
@@ -1997,17 +1993,49 @@ def bkm10_tsa(
     lep_helicity, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
     cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
 
-    plus_longitudinally_polarized_cross_section = bkm10_cross_section(
+    if lep_helicity == 0.0:
+
+        print(f"Lepton helicity is unpolarized: {lep_helicity}")
+
+        plus_beam_plus_lp_target = bkm10_cross_section(
+        +1.0, +0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+
+        minus_beam_plus_lp_target = bkm10_cross_section(
+        -1.0, +0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+
+        plus_beam_minus_lp_target = bkm10_cross_section(
+        +1.0, -0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+
+        minus_beam_minus_lp_target = bkm10_cross_section(
+        -1.0, -0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
+        cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
+
+        tf_bsa = (
+            (0.5*(plus_beam_plus_lp_target + minus_beam_plus_lp_target) - 0.5*(plus_beam_minus_lp_target + minus_beam_minus_lp_target)) / 
+            0.5*(plus_beam_plus_lp_target + minus_beam_plus_lp_target) + 0.5*(plus_beam_minus_lp_target + minus_beam_minus_lp_target))
+
+    elif (lep_helicity == -1.0 or lep_helicity == +1.0):
+
+        print(f"Lepton helicity is polarized: {lep_helicity}")
+
+        plus_lp_target = bkm10_cross_section(
         lep_helicity, +0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
         cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
 
-    minus_longitudinally_polarized_cross_section = bkm10_cross_section(
+        minus_lp_target = bkm10_cross_section(
         lep_helicity, -0.5, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
         cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww)
     
-    tf_bsa = (
-        (plus_longitudinally_polarized_cross_section - minus_longitudinally_polarized_cross_section) / 
-        (plus_longitudinally_polarized_cross_section + minus_longitudinally_polarized_cross_section))
+        tf_bsa = (
+            (plus_lp_target - minus_lp_target) / 
+            (plus_lp_target + minus_lp_target))
+        
+    else:
+        
+        tf_bsa = 0.0
         
     return tf_bsa
 
@@ -2386,7 +2414,7 @@ unp_beam_unp_target_bsa_xdj = bkm10_bsa(
 )
 
 unp_beam_unp_target_tsa_xdj = bkm10_tsa(
-    0.0,
+    1.0,
     TEST_QSQ, TEST_XB, TEST_T, TEST_EP, TEST_Y, TEST_XI, TEST_K, TEST_F1, TEST_F2, TEST_K_TILDE, TEST_T_PRIME, phi_array_in_radians, TEST_P1, TEST_P2,
     TEST_REAL_CFF_H, TEST_REAL_CFF_HT, TEST_REAL_CFF_E, TEST_REAL_CFF_ET, TEST_IM_CFF_H, TEST_IM_CFF_HT, TEST_IM_CFF_E, TEST_IM_CFF_ET
 )
