@@ -3,7 +3,7 @@
 # Purpose: runs *a* replica based on a single 
 # DNN architecture.
 # Created: 20260107
-# Last changed: 20260120
+# Last changed: 20260210
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -14,7 +14,7 @@ print(f"[INFO]: Script began running!")
 ##########################################
 
 # verify this is what you want
-SCRATCH_PATH = 'placeholder'
+SCRATCH_PATH = 'placeholder!'
 
 VERSION_NUMBER = 1
 MINOR_NUMBER = 1
@@ -63,7 +63,6 @@ import sys
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import numpy as np
 import tensorflow as tf
 
@@ -85,7 +84,7 @@ print(f"[INFO]: This replica number is: Replica #{replica_number}")
 ##########################################
 
 plt.rcParams.update({
-    "text.usetex": True, "font.family": "serif",
+    "text.usetex": False, "font.family": "serif",
 })
 plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['xtick.major.size'] = 8.5
@@ -237,20 +236,37 @@ xsecs = DifferentialCrossSection(
             compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
             compton_form_factor_e = CFF_E_KM15,
             compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-        "target_polarization": 0.0,
-        "lepton_beam_polarization": 0.0,
         "using_ww": True
     },
     verbose = False,
     debugging = False)
 
-x_training_bkm10_xsec = xsecs.compute_cross_section(x_training_phi_points).real
-x_validation_bkm10_xsec = xsecs.compute_cross_section(x_validation_phi_points).real
-x_testing_bkm10_xsec = xsecs.compute_cross_section(x_testing_phi_points).real
+x_training_bkm10_xsec = xsecs.compute_cross_section(
+    x_training_phi_points,
+    lepton_helicity = 0.0,
+    target_polarization = 0.0).real
 
-x_training_bkm10_bsa = xsecs.compute_bsa(x_training_phi_points).real
-x_validation_bkm10_bsa = xsecs.compute_bsa(x_validation_phi_points).real
-x_testing_bkm10_bsa = xsecs.compute_bsa(x_testing_phi_points).real
+x_validation_bkm10_xsec = xsecs.compute_cross_section(
+    x_validation_phi_points,
+    lepton_helicity = 0.0,
+    target_polarization = 0.0).real
+
+x_testing_bkm10_xsec = xsecs.compute_cross_section(
+    x_testing_phi_points,
+    lepton_helicity = 0.0,
+    target_polarization = 0.0).real
+
+x_training_bkm10_bsa = xsecs.compute_bsa(
+    x_training_phi_points,
+    target_polarization = 0.0).real
+
+x_validation_bkm10_bsa = xsecs.compute_bsa(
+    x_validation_phi_points,
+    target_polarization = 0.0).real
+
+x_testing_bkm10_bsa = xsecs.compute_bsa(
+    x_testing_phi_points,
+    target_polarization = 0.0).real
 
 title_string = (
     rf"$Q^2 = {FIXED_Q_SQUARED:.2f}$ GeV$^2$, "
@@ -295,17 +311,27 @@ plt.close(bsa_train_test_split_figure)
 # DNN Model Setup
 ##########################################
 
-_CONVERSION_GEV6_GEV4NB = tf.constant(.389379 * 1000000., dtype = _FLOATX)
-_MASS_OF_PROTON_IN_GEV = tf.constant(0.93827208816, dtype = _FLOATX)
-_QED_FINE_STRUCTURE = tf.constant(1./137.035999177, dtype = _FLOATX)
-_ELECTRIC_FORM_FACTOR_CONSTANT = tf.constant(0.710649, dtype = _FLOATX)
-_PROTON_MAGNETIC_MOMENT = tf.constant(2.79284734463, dtype = _FLOATX)
-
 _LAB_K_BEAM = tf.constant(test_dataframe["k"].iloc[0], dtype = _FLOATX)
 print(f"[INFO]: Chosen fixed k to be {_LAB_K_BEAM}")
 
 assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
 assert test_dataframe["k"].iloc[0] == test_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+
+_FLOATX = tf.float32
+
+# below did NOT work for fixing the stupid tf type mismatch
+# tf.keras.mixed_precision.set_global_policy('float32')
+
+print(tf.config.list_physical_devices())
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+print("Num CPUs Available: ", len(tf.config.list_physical_devices('CPU')))
+print(tf.test.gpu_device_name())
+
+_CONVERSION_GEV6_GEV4NB = tf.constant(.389379 * 1000000., dtype = _FLOATX)
+_MASS_OF_PROTON_IN_GEV = tf.constant(0.93827208816, dtype = _FLOATX)
+_QED_FINE_STRUCTURE = tf.constant(1./137.035999177, dtype = _FLOATX)
+_ELECTRIC_FORM_FACTOR_CONSTANT = tf.constant(0.710649, dtype = _FLOATX)
+_PROTON_MAGNETIC_MOMENT = tf.constant(2.79284734463, dtype = _FLOATX)
 
 def compute_fe(t):
     return tf.divide(1., tf.square(1. - tf.divide(t, _ELECTRIC_FORM_FACTOR_CONSTANT)))
@@ -489,7 +515,7 @@ def dvcs_squared(
     lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, phi,
     cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
 
-    if target_polar == 1.0:
+    if target_polar == +0.5 or target_polar == -0.5:
         raise NotImplementedError("[ERROR]: NO POLARIZED TARGET YET!")
     
     if lep_helicity == 0.0:
@@ -1021,7 +1047,7 @@ def interference_amplitude(
     lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
     cff_re_h, cff_re_ht, cff_re_e, cff_im_h, cff_im_ht, cff_im_e, use_ww: bool = True):
 
-    if target_polar == 1.0:
+    if target_polar == +0.5 or target_polar == -0.5:
         # [TODO]: Code polarized target coefficients. @Woofmagic
         raise NotImplementedError("NO POLARIZED TARGET YET!")
     
@@ -1075,7 +1101,7 @@ def bkm10_cross_section(
     lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
     cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
 
-    if target_polar == 1.0:
+    if target_polar == +0.5 or target_polar == -0.5:
         # [TODO]: Code polarized target coefficients. @Woofmagic
         raise NotImplementedError("NO POLARIZED TARGET YET!")
     
@@ -1105,36 +1131,36 @@ def bkm10_cross_section(
         q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2, 
         cff_re_h, cff_re_ht, cff_re_e, cff_im_h, cff_im_ht, cff_im_e, use_ww)
     
-    tf_cross_section_km15 = 0.0
+    tf_cross_section = 0.0
     
     if lep_helicity == 0.0:
-        tf_cross_section_km15 = 0.5 * (
+        tf_cross_section = 0.5 * (
             _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + bh_km15_minus_beam +
                 dvcs_km15_plus_beam + dvcs_km15_minus_beam +
                 interference_km15_plus_beam + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == 1.0:
-        tf_cross_section_km15 = (
+        tf_cross_section = (
             _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 bh_km15_plus_beam + 0.0 +
                 dvcs_km15_plus_beam + 0.0 +
                 interference_km15_plus_beam + 0.0) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
     elif lep_helicity == -1.0:
-        tf_cross_section_km15 = (
+        tf_cross_section = (
             _CONVERSION_GEV6_GEV4NB*_QED_FINE_STRUCTURE**3*xb*y*y*(
                 0.0 + bh_km15_minus_beam +
                 0.0 + dvcs_km15_minus_beam +
                 0.0 + interference_km15_minus_beam) / (8.*tf.constant(np.pi)*q_sq*q_sq*tf.sqrt(1. + ep**2)))
         
-    return tf_cross_section_km15
+    return tf_cross_section
 
 def bkm10_bsa(
     lep_helicity, target_polar, q_sq, xb, t, ep, y, xi, k, f1, f2, ktilde, tprime, phi, p1, p2,
     cff_re_h, cff_re_ht, cff_re_e, cff_re_et, cff_im_h, cff_im_ht, cff_im_e, cff_im_et, use_ww: bool = True):
 
-    if target_polar == 1.0:
+    if target_polar == +0.5 or target_polar == -0.5:
         # [TODO]: Code polarized target coefficients. @Woofmagic
         raise NotImplementedError("NO POLARIZED TARGET YET!")
     
@@ -1169,15 +1195,15 @@ def bkm10_bsa(
     cross_section_minus_beam = bh_km15_minus_beam + dvcs_km15_minus_beam + interference_km15_minus_beam
 
     tf_bsa = ((cross_section_plus_beam - cross_section_minus_beam) / (cross_section_plus_beam + cross_section_minus_beam))
-        
+
     return tf_bsa
 
 class SimultaneousObservablesLoss(tf.keras.losses.Loss):
     def __init__(self, name = "simultaneous_observables_loss"):
         super().__init__(name = name)
 
-        self._OBSERVABLE_WEIGHT_1 = 0.5 * 1.0
-        self._OBSERVABLE_WEIGHT_2 = 0.5 * 0.0
+        self._OBSERVABLE_WEIGHT_1 = 0.5
+        self._OBSERVABLE_WEIGHT_2 = 0.5
         
     def call(self, true_values, predicted_values):
         
@@ -1323,5 +1349,3 @@ plt.close(curves_fig)
 plt.close(log_curves_fig)
 
 tf.keras.backend.clear_session()
-
-print(f"[INFO]: End of script reached!")
