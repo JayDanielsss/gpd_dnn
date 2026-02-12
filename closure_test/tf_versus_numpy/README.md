@@ -1,0 +1,5 @@
+During the debugging of `testing_functions.ipynb`, we noticed that changing between `np.` and `tf.` math functions (specifically, square roots, powers, sine, and cosine) produced slightly different numbers.
+
+`numpy.txt` is the `print` output of the calculations of all the subfunctions using `np.sqrt()`, `np.power()`, `np.sin()`, `np.cos()`, and `np.pi`. `tensorflow.txt` is the `print` output of the calculations of all the subfunctions using `tf.sqrt()`, `tf.pow()`, `tf.sin()`, `tf.cos()`, and also using `tf.constant()` on all of the constant parameters, such as `_CONVERSION_FACTOR`, `_MASS_OF_PROTON_IN_GEV`, and so on. (We did *not* yet wrap the extant functions with `@tf.function` decorators --- that will be a future test. We also did *not* change all standard `float` numbers to `tf.constant()` numbers --- another future test.)
+
+To see to what extent these numbers differ, we used the script `sanity_check.py`, which simply loads the text files and compares the residuals row-wise. It then finally prints out the values of the rows where the discrepancy between the NumPy and TensorFlow approach is larger than `1e-7`.
