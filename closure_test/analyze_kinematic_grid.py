@@ -64,8 +64,8 @@ t_vs_x_axis.set_xlabel(r"$x_{\textrm{B}}$")
 t_vs_x_axis.set_ylabel(r"$-t$")
 t_vs_x_axis.set_title(r"$-t$ vs. $x_{\textrm{B}}$")
 
-t_vs_xb_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/version_{MAJOR_MINOR_NUMBER}/plots/t_vs_xb_v{MAJOR_MINOR_NUMBER}.png")
-t_vs_xb_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/version_{MAJOR_MINOR_NUMBER}/plots/t_vs_xb_v{MAJOR_MINOR_NUMBER}.eps")
+t_vs_xb_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/plots/t_vs_xb_v{MAJOR_MINOR_NUMBER}.png")
+t_vs_xb_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/plots/t_vs_xb_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(t_vs_xb_figure)
 
 qsq_vs_t_figure, qsq_vs_t_axis = plt.subplots(1, 1, figsize = (8, 7))
@@ -74,8 +74,8 @@ qsq_vs_t_axis.set_xlabel(r"$Q^{2}$")
 qsq_vs_t_axis.set_ylabel(r"$-t$")
 qsq_vs_t_axis.set_title(r"$-t$ vs. $Q^{2}$")
 
-qsq_vs_t_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/version_{VERSION_NUMBER}/plots/qsquared_vs_t_v{MAJOR_MINOR_NUMBER}.png")
-qsq_vs_t_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/version_{VERSION_NUMBER}/plots/qsquared_vs_t_v{MAJOR_MINOR_NUMBER}.eps")
+qsq_vs_t_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/plots/qsquared_vs_t_v{MAJOR_MINOR_NUMBER}.png")
+qsq_vs_t_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/plots/qsquared_vs_t_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(qsq_vs_t_figure)
 
 xb_vs_qsq_figure, xb_vs_qsq_axis = plt.subplots(1, 1, figsize = (8, 7))
@@ -84,8 +84,8 @@ xb_vs_qsq_axis.set_xlabel(r"$x_{\textrm{B}}$")
 xb_vs_qsq_axis.set_ylabel(r"$Q^{2}$")
 xb_vs_qsq_axis.set_title(r"$Q^{2}$ vs. $x_{\textrm{B}}$")
 
-xb_vs_qsq_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/version_{VERSION_NUMBER}/plots/xb_vs_qsquared_v{MAJOR_MINOR_NUMBER}.png")
-xb_vs_qsq_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/version_{VERSION_NUMBER}/plots/xb_vs_qsquared_v{MAJOR_MINOR_NUMBER}.eps")
+xb_vs_qsq_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/plots/xb_vs_qsquared_v{MAJOR_MINOR_NUMBER}.png")
+xb_vs_qsq_figure.savefig(f"./version_{MAJOR_MINOR_NUMBER}/plots/xb_vs_qsquared_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(xb_vs_qsq_figure)
 
 print(f"[INFO]: End of script reached!")
