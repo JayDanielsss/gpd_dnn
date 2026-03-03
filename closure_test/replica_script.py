@@ -3,7 +3,7 @@
 # Purpose: runs *a* replica based on a single 
 # DNN architecture.
 # Created: 20260107
-# Last changed: 20260217
+# Last changed: 20260226
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -60,6 +60,7 @@ print(f"[INFO]: Replica DNN has {_NUMBER_NODES_HIDDEN_4} nodes in 4th hidden lay
 ##########################################
 
 import sys
+import glob
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -73,11 +74,6 @@ from bkm10_lib.inputs import BKM10Inputs
 from bkm10_lib.cff_inputs import CFFInputs
 
 print(f"[INFO]: Libraries imported!")
-
-replica_index = sys.argv[1]
-replica_number = int(replica_index) + 1
-
-print(f"[INFO]: This replica number is: Replica #{replica_number}")
 
 ##########################################
 # Matplotlib Plotting Customizability
@@ -113,208 +109,6 @@ print(f"[INFO]: Physical devices available to TF are: {tf.config.list_physical_d
 print(f"[INFO]: Number of GPUs Available: {len(tf.config.list_physical_devices('GPU'))}")
 print(f"[INFO]: Number of CPUs Available: {len(tf.config.list_physical_devices('CPU'))}")
 print(f"[INFO]: Checking the GPU name: {tf.test.gpu_device_name()}")
-
-##########################################
-# Reading the Datafile:
-##########################################
-
-test_dataframe = pd.read_csv(
-    filepath_or_buffer = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
-)
-
-x_data = test_dataframe[["t", "x_b", "q_squared", "phi"]]
-y_data = test_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
-
-TOTAL_DATA_SIZE = len(x_data)
-print(f"[INFO]: Total data size is: {TOTAL_DATA_SIZE}")
-
-FIXED_BEAM_ENERGY = test_dataframe["k"].iloc[0]
-FIXED_Q_SQUARED = test_dataframe["q_squared"].iloc[0]
-FIXED_X_BJORKEN = test_dataframe["x_b"].iloc[0]
-FIXED_T_VALUE = test_dataframe["t"].iloc[0]
-
-print(f"[INFO]: Selected beam energy k = {FIXED_BEAM_ENERGY}")
-print(f"[INFO]: Selected Q^2 = {FIXED_Q_SQUARED}")
-print(f"[INFO]: Selected xB = {FIXED_X_BJORKEN}")
-print(f"[INFO]: Selected t = {FIXED_T_VALUE}")
-
-CFF_REAL_H_KM15 = test_dataframe["Re[H]"].iloc[0]
-CFF_IMAG_H_KM15 = test_dataframe["Im[H]"].iloc[0]
-CFF_REAL_E_KM15 = test_dataframe["Re[E]"].iloc[0]
-CFF_IMAG_E_KM15 = test_dataframe["Im[E]"].iloc[0]
-CFF_REAL_HT_KM15 = test_dataframe["Re[Ht]"].iloc[0]
-CFF_IMAG_HT_KM15 = test_dataframe["Im[Ht]"].iloc[0]
-CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
-CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
-
-CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
-CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
-CFF_E_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
-CFF_E_TILDE_KM15 = complex(CFF_REAL_ET_KM15, CFF_IMAG_ET_KM15)
-
-print(f"[INFO]: Selected CFF H = {CFF_H_KM15}")
-print(f"[INFO]: Selected CFF E = {CFF_E_KM15}")
-print(f"[INFO]: Selected CFF Ht = {CFF_H_TILDE_KM15}")
-print(f"[INFO]: Selected CFF Et = {CFF_E_TILDE_KM15}")
-
-number_of_dnn_temporary_points = int(np.ceil(TOTAL_DATA_SIZE * _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE))
-number_of_dnn_testing_points = TOTAL_DATA_SIZE - number_of_dnn_temporary_points
-number_of_dnn_training_points = int(np.ceil(number_of_dnn_temporary_points * _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE))
-number_of_dnn_validation_points = TOTAL_DATA_SIZE - number_of_dnn_training_points - number_of_dnn_testing_points
-
-print(f"[NOTE]: Testing/Temporary Split is {_DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_testing_points} testing points (with ceiling).")
-print(f"[NOTE]: Training/Validation Split is {_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
-print(f"[NOTE]: Remaining training data points are: {number_of_dnn_training_points}")
-
-# testing/temporary split:
-x_testing, x_remaining, y_testing, y_remaining = train_test_split(
-    x_data,
-    y_data,
-    test_size = _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE,
-    shuffle = True)
-
-# training/validation split:
-x_validation, x_training, y_validation, y_training = train_test_split(
-    x_remaining,
-    y_remaining,
-    test_size = _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE,
-    shuffle = True)
-
-print(f"[INFO]: Detected size of x training: {len(x_training)}")
-assert len(x_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected x-training size and computed size."
-
-print(f"[INFO]: Detected size of y training: {len(y_training)}")
-assert len(y_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected y-training size and computed size."
-
-print(f"[INFO]: Detected size of x validation: {len(x_validation)}")
-assert len(x_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected x-validation size and computed size."
-
-print(f"[INFO]: Detected size of y validation: {len(y_validation)}")
-assert len(y_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected y-validation size and computed size."
-
-print(f"[INFO]: Detected size of x testing: {len(x_testing)}")
-assert len(x_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected x-testing size and computed size."
-
-print(f"[INFO]: Detected size of x testing: {len(y_testing)}")
-assert len(y_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected y-testing size and computed size."
-
-# find their flags
-train_flags = pd.DataFrame({'flag': 'train'}, index = x_training.index)
-validation_flags = pd.DataFrame({'flag': 'validation'}, index = x_validation.index)
-test_flags = pd.DataFrame({'flag': 'test'}, index = x_testing.index)
-
-all_flags = pd.concat([train_flags, validation_flags, test_flags])
-
-test_dataframe = test_dataframe.merge(all_flags, left_index = True, right_index = True, how = 'left')
-
-test_dataframe.to_csv(
-    path_or_buf = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data/dnn_data_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.csv"
-)
-
-if number_of_dnn_training_points <= _BATCH_SIZE:
-    print(f"[WARN]: Number of training points is less than or equal to the batch size. Setting batch size equal to {number_of_dnn_training_points}.")
-    _BATCH_SIZE = number_of_dnn_training_points
-
-##########################################
-# Finding Observable Values Labeled by
-# Training/Validation/Testing
-##########################################
-
-# a numpy array of all the corresponding phi-points
-# if you do NOT UNDERSTAND why the code below selects the phi-values that are used in training, please run each piece interactively
-x_training_phi_points = np.array(x_training["phi"])
-x_validation_phi_points = np.array(x_validation["phi"])
-x_testing_phi_points = np.array(x_testing["phi"])
-
-xsecs = DifferentialCrossSection(
-    configuration = {
-        "kinematics": BKM10Inputs(
-            lab_kinematics_k = FIXED_BEAM_ENERGY,
-            squared_Q_momentum_transfer = FIXED_Q_SQUARED,
-            x_Bjorken = FIXED_X_BJORKEN,
-            squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
-        "cff_inputs": CFFInputs(
-            compton_form_factor_h = CFF_H_KM15,
-            compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
-            compton_form_factor_e = CFF_E_KM15,
-            compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-        "using_ww": True
-    },
-    verbose = False,
-    debugging = False)
-
-x_training_bkm10_xsec = xsecs.compute_cross_section(
-    x_training_phi_points,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
-
-x_validation_bkm10_xsec = xsecs.compute_cross_section(
-    x_validation_phi_points,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
-
-x_testing_bkm10_xsec = xsecs.compute_cross_section(
-    x_testing_phi_points,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
-
-x_training_bkm10_bsa = xsecs.compute_bsa(
-    x_training_phi_points,
-    target_polarization = 0.0).real
-
-x_validation_bkm10_bsa = xsecs.compute_bsa(
-    x_validation_phi_points,
-    target_polarization = 0.0).real
-
-x_testing_bkm10_bsa = xsecs.compute_bsa(
-    x_testing_phi_points,
-    target_polarization = 0.0).real
-
-title_string = (
-    rf"$Q^2 = {FIXED_Q_SQUARED:.2f}$ GeV$^2$, "
-    rf"$x_B = {FIXED_X_BJORKEN:.2f}$, "
-    rf"$t = {FIXED_T_VALUE:.2f}$ ,"
-    rf"$k = {FIXED_BEAM_ENERGY:.2f}$ GeV"
-)
-km15_cff_string = (
-    rf"$\mathcal{{H}} = {CFF_H_KM15:.3f}$, "
-    rf"$\mathcal{{E}} = {CFF_E_KM15:.3f}$, "
-    rf"$\widetilde{{\mathcal{{H}}}} = {CFF_H_TILDE_KM15:.3f}$, "
-    rf"$\widetilde{{\mathcal{{E}}}} = {CFF_E_TILDE_KM15:.3f}$ "
-)
-
-data_vis_figure, data_vis_axis = plt.subplots(1, 1, figsize = (8, 7))
-data_vis_axis.scatter(x_training_phi_points, x_training_bkm10_xsec, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
-data_vis_axis.scatter(x_validation_phi_points, x_validation_bkm10_xsec, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
-data_vis_axis.scatter(x_testing_phi_points, x_testing_bkm10_xsec, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
-data_vis_axis.legend(fontsize = 14.)
-data_vis_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
-data_vis_axis.set_ylabel(r"$d^{4}\sigma$", fontsize = 16.)
-data_vis_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-data_vis_axis.grid(visible = True)
-data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(data_vis_figure)
-
-bsa_train_test_split_figure, bsa_train_test_split_axis = plt.subplots(1, 1, figsize = (8, 7))
-bsa_train_test_split_axis.scatter(x_training_phi_points, x_training_bkm10_bsa, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
-bsa_train_test_split_axis.scatter(x_validation_phi_points, x_validation_bkm10_bsa, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
-bsa_train_test_split_axis.scatter(x_testing_phi_points, x_testing_bkm10_bsa, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
-bsa_train_test_split_axis.legend(fontsize = 14.)
-bsa_train_test_split_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
-bsa_train_test_split_axis.set_ylabel(r"BSA", fontsize = 16.)
-bsa_train_test_split_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-bsa_train_test_split_axis.grid(visible = True)
-bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(bsa_train_test_split_figure)
-
-##########################################
-# DNN Model Setup
-##########################################
-
-assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
-assert test_dataframe["k"].iloc[0] == test_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
 
 _FLOATX = tf.float32
 
@@ -2349,67 +2143,290 @@ def cff_h_model():
         metrics = ["accuracy"])
     return model
 
-dnn_model = cff_h_model()
+##########################################
+# Reading the Datafile:
+##########################################
 
-dnn_model_history = dnn_model.fit(
-    x_training,
-    y_training,
-    validation_data = (x_validation, y_validation),
-    epochs = _NUMBER_OF_EPOCHS,
-    callbacks = [
-        tf.keras.callbacks.EarlyStopping(
-            monitor = 'val_loss',
-            patience = 25, # stop if no improvement for 25 epochs
-            restore_best_weights = True
-        )
-    ],
-    batch_size = _BATCH_SIZE,
-    verbose = 0
+kinematic_set_number = sys.argv[1]
+
+print(f"[INFO]: Now running Kinematic Set #{kinematic_set_number}")
+
+NUMBER_OF_REPLICAS = 100
+
+test_dataframe = pd.read_csv(
+    filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
+)
+
+assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+assert test_dataframe["k"].iloc[0] == test_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+
+x_data = test_dataframe[["t", "x_b", "q_squared", "phi"]]
+y_data = test_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
+
+TOTAL_DATA_SIZE = len(x_data)
+print(f"[INFO]: Total data size is: {TOTAL_DATA_SIZE}")
+
+FIXED_BEAM_ENERGY = test_dataframe["k"].iloc[0]
+FIXED_Q_SQUARED = test_dataframe["q_squared"].iloc[0]
+FIXED_X_BJORKEN = test_dataframe["x_b"].iloc[0]
+FIXED_T_VALUE = test_dataframe["t"].iloc[0]
+
+print(f"[INFO]: Selected beam energy k = {FIXED_BEAM_ENERGY}")
+print(f"[INFO]: Selected Q^2 = {FIXED_Q_SQUARED}")
+print(f"[INFO]: Selected xB = {FIXED_X_BJORKEN}")
+print(f"[INFO]: Selected t = {FIXED_T_VALUE}")
+
+CFF_REAL_H_KM15 = test_dataframe["Re[H]"].iloc[0]
+CFF_IMAG_H_KM15 = test_dataframe["Im[H]"].iloc[0]
+CFF_REAL_E_KM15 = test_dataframe["Re[E]"].iloc[0]
+CFF_IMAG_E_KM15 = test_dataframe["Im[E]"].iloc[0]
+CFF_REAL_HT_KM15 = test_dataframe["Re[Ht]"].iloc[0]
+CFF_IMAG_HT_KM15 = test_dataframe["Im[Ht]"].iloc[0]
+CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
+CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
+
+CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
+CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
+CFF_E_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
+CFF_E_TILDE_KM15 = complex(CFF_REAL_ET_KM15, CFF_IMAG_ET_KM15)
+
+print(f"[INFO]: Selected CFF H = {CFF_H_KM15}")
+print(f"[INFO]: Selected CFF E = {CFF_E_KM15}")
+print(f"[INFO]: Selected CFF Ht = {CFF_H_TILDE_KM15}")
+print(f"[INFO]: Selected CFF Et = {CFF_E_TILDE_KM15}")
+
+number_of_dnn_temporary_points = int(np.ceil(TOTAL_DATA_SIZE * _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE))
+number_of_dnn_testing_points = TOTAL_DATA_SIZE - number_of_dnn_temporary_points
+number_of_dnn_training_points = int(np.ceil(number_of_dnn_temporary_points * _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE))
+number_of_dnn_validation_points = TOTAL_DATA_SIZE - number_of_dnn_training_points - number_of_dnn_testing_points
+
+print(f"[NOTE]: Testing/Temporary Split is {_DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_testing_points} testing points (with ceiling).")
+print(f"[NOTE]: Training/Validation Split is {_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
+print(f"[NOTE]: Remaining training data points are: {number_of_dnn_training_points}")
+
+for replica_index in range(NUMBER_OF_REPLICAS):
+    replica_number = replica_index + 1
+    print(f"[INFO]: This replica number is: Replica #{replica_number}")
+
+    # testing/temporary split:
+    x_testing, x_remaining, y_testing, y_remaining = train_test_split(
+        x_data,
+        y_data,
+        test_size = _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE,
+        shuffle = True)
+
+    # training/validation split:
+    x_validation, x_training, y_validation, y_training = train_test_split(
+        x_remaining,
+        y_remaining,
+        test_size = _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE,
+        shuffle = True)
+
+    print(f"[INFO]: Detected size of x training: {len(x_training)}")
+    assert len(x_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected x-training size and computed size."
+
+    print(f"[INFO]: Detected size of y training: {len(y_training)}")
+    assert len(y_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected y-training size and computed size."
+
+    print(f"[INFO]: Detected size of x validation: {len(x_validation)}")
+    assert len(x_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected x-validation size and computed size."
+
+    print(f"[INFO]: Detected size of y validation: {len(y_validation)}")
+    assert len(y_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected y-validation size and computed size."
+
+    print(f"[INFO]: Detected size of x testing: {len(x_testing)}")
+    assert len(x_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected x-testing size and computed size."
+
+    print(f"[INFO]: Detected size of x testing: {len(y_testing)}")
+    assert len(y_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected y-testing size and computed size."
+
+    # find their flags
+    train_flags = pd.DataFrame({'flag': 'train'}, index = x_training.index)
+    validation_flags = pd.DataFrame({'flag': 'validation'}, index = x_validation.index)
+    test_flags = pd.DataFrame({'flag': 'test'}, index = x_testing.index)
+
+    all_flags = pd.concat([train_flags, validation_flags, test_flags])
+
+    test_dataframe = test_dataframe.merge(all_flags, left_index = True, right_index = True, how = 'left')
+
+    test_dataframe.to_csv(
+        path_or_buf = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/dnn_data_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.csv"
     )
 
-number_of_epochs_run = len(dnn_model_history.epoch)
-print(f"[NOTE]: The model ran for {number_of_epochs_run} epochs before early stopping.")
+    if number_of_dnn_training_points <= _BATCH_SIZE:
+        print(f"[WARN]: Number of training points is less than or equal to the batch size. Setting batch size equal to {number_of_dnn_training_points}.")
+        _BATCH_SIZE = number_of_dnn_training_points
 
-dnn_model.save(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
+    ##########################################
+    # Finding Observable Values Labeled by
+    # Training/Validation/Testing
+    ##########################################
 
-training_loss_data = dnn_model_history.history["loss"]
-validation_loss_data = dnn_model_history.history["val_loss"]
+    # a numpy array of all the corresponding phi-points
+    # if you do NOT UNDERSTAND why the code below selects the phi-values that are used in training, please run each piece interactively
+    x_training_phi_points = np.array(x_training["phi"])
+    x_validation_phi_points = np.array(x_validation["phi"])
+    x_testing_phi_points = np.array(x_testing["phi"])
 
-testing_loss, testing_accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
-print(f"Test Loss for Replica {replica_number}: {testing_loss}")
-print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
+    xsecs = DifferentialCrossSection(
+        configuration = {
+            "kinematics": BKM10Inputs(
+                lab_kinematics_k = FIXED_BEAM_ENERGY,
+                squared_Q_momentum_transfer = FIXED_Q_SQUARED,
+                x_Bjorken = FIXED_X_BJORKEN,
+                squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
+            "cff_inputs": CFFInputs(
+                compton_form_factor_h = CFF_H_KM15,
+                compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
+                compton_form_factor_e = CFF_E_KM15,
+                compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
+            "using_ww": True
+        },
+        verbose = False,
+        debugging = False)
 
-curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
-log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
+    x_training_bkm10_xsec = xsecs.compute_cross_section(
+        x_training_phi_points,
+        lepton_helicity = 0.0,
+        target_polarization = 0.0).real
 
-curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.array([np.max(training_loss_data) for number in training_loss_data]), color = "red", label = "Initial Loss Value")
-curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.zeros(shape = (number_of_epochs_run)), color = "green", label = r"Loss $= 0$")
-curves_ax.plot(np.arange(0, number_of_epochs_run, 1), training_loss_data, color = "blue", label = "Training Loss")
-curves_ax.plot(np.arange(0, number_of_epochs_run, 1), validation_loss_data, color = "purple", label = "Validation Loss")
+    x_validation_bkm10_xsec = xsecs.compute_cross_section(
+        x_validation_phi_points,
+        lepton_helicity = 0.0,
+        target_polarization = 0.0).real
 
-log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.array([np.max(training_loss_data) for number in training_loss_data])), color = "red", label = "Initial Loss Value")
-log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.zeros(shape = (number_of_epochs_run)) + 1e-20), color = "green", label = r"Loss $= 0$")
-log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(training_loss_data), color = "blue", label = "Log Training Loss")
-log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(validation_loss_data), color = "purple", label = "Log Validation Loss")
+    x_testing_bkm10_xsec = xsecs.compute_cross_section(
+        x_testing_phi_points,
+        lepton_helicity = 0.0,
+        target_polarization = 0.0).real
 
-curves_ax.legend(fontsize = 15)
-log_curves_ax.legend(fontsize = 15)
+    x_training_bkm10_bsa = xsecs.compute_bsa(
+        x_training_phi_points,
+        target_polarization = 0.0).real
 
-curves_ax.set_xlabel("Epoch", fontsize = 15)
-curves_ax.set_ylabel("MSE", fontsize = 15)
-curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+    x_validation_bkm10_bsa = xsecs.compute_bsa(
+        x_validation_phi_points,
+        target_polarization = 0.0).real
 
-log_curves_ax.set_xlabel("Epoch", fontsize = 15)
-log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
-log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+    x_testing_bkm10_bsa = xsecs.compute_bsa(
+        x_testing_phi_points,
+        target_polarization = 0.0).real
 
-curves_fig.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-curves_fig.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+    title_string = (
+        rf"$Q^2 = {FIXED_Q_SQUARED:.2f}$ GeV$^2$, "
+        rf"$x_B = {FIXED_X_BJORKEN:.2f}$, "
+        rf"$t = {FIXED_T_VALUE:.2f}$ ,"
+        rf"$k = {FIXED_BEAM_ENERGY:.2f}$ GeV"
+    )
+    km15_cff_string = (
+        rf"$\mathcal{{H}} = {CFF_H_KM15:.3f}$, "
+        rf"$\mathcal{{E}} = {CFF_E_KM15:.3f}$, "
+        rf"$\widetilde{{\mathcal{{H}}}} = {CFF_H_TILDE_KM15:.3f}$, "
+        rf"$\widetilde{{\mathcal{{E}}}} = {CFF_E_TILDE_KM15:.3f}$ "
+    )
 
-log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+    data_vis_figure, data_vis_axis = plt.subplots(1, 1, figsize = (8, 7))
+    data_vis_axis.scatter(x_training_phi_points, x_training_bkm10_xsec, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
+    data_vis_axis.scatter(x_validation_phi_points, x_validation_bkm10_xsec, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
+    data_vis_axis.scatter(x_testing_phi_points, x_testing_bkm10_xsec, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
+    data_vis_axis.legend(fontsize = 14.)
+    data_vis_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
+    data_vis_axis.set_ylabel(r"$d^{4}\sigma$", fontsize = 16.)
+    data_vis_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
+    data_vis_axis.grid(visible = True)
+    data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+    plt.close(data_vis_figure)
 
-plt.close(curves_fig)
-plt.close(log_curves_fig)
+    bsa_train_test_split_figure, bsa_train_test_split_axis = plt.subplots(1, 1, figsize = (8, 7))
+    bsa_train_test_split_axis.scatter(x_training_phi_points, x_training_bkm10_bsa, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
+    bsa_train_test_split_axis.scatter(x_validation_phi_points, x_validation_bkm10_bsa, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
+    bsa_train_test_split_axis.scatter(x_testing_phi_points, x_testing_bkm10_bsa, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
+    bsa_train_test_split_axis.legend(fontsize = 14.)
+    bsa_train_test_split_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
+    bsa_train_test_split_axis.set_ylabel(r"BSA", fontsize = 16.)
+    bsa_train_test_split_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
+    bsa_train_test_split_axis.grid(visible = True)
+    bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+    plt.close(bsa_train_test_split_figure)
 
-tf.keras.backend.clear_session()
+    ##########################################
+    # DNN Model Setup
+    ##########################################
+
+    dnn_model = cff_h_model()
+
+    dnn_model_history = dnn_model.fit(
+        x_training,
+        y_training,
+        validation_data = (x_validation, y_validation),
+        epochs = _NUMBER_OF_EPOCHS,
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(
+                monitor = 'val_loss',
+                patience = 25, # stop if no improvement for 25 epochs
+                restore_best_weights = True
+            )
+        ],
+        batch_size = _BATCH_SIZE,
+        verbose = 0
+        )
+
+    number_of_epochs_run = len(dnn_model_history.epoch)
+    print(f"[NOTE]: The model ran for {number_of_epochs_run} epochs before early stopping.")
+
+    dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
+
+    training_loss_data = dnn_model_history.history["loss"]
+    validation_loss_data = dnn_model_history.history["val_loss"]
+
+    testing_loss, testing_accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
+    print(f"Test Loss for Replica {replica_number}: {testing_loss}")
+    print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
+
+    curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
+    log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
+
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.array([np.max(training_loss_data) for number in training_loss_data]), color = "red", label = "Initial Loss Value")
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.zeros(shape = (number_of_epochs_run)), color = "green", label = r"Loss $= 0$")
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), training_loss_data, color = "blue", label = "Training Loss")
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), validation_loss_data, color = "purple", label = "Validation Loss")
+
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.array([np.max(training_loss_data) for number in training_loss_data])), color = "red", label = "Initial Loss Value")
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.zeros(shape = (number_of_epochs_run)) + 1e-20), color = "green", label = r"Loss $= 0$")
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(training_loss_data), color = "blue", label = "Log Training Loss")
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(validation_loss_data), color = "purple", label = "Log Validation Loss")
+
+    curves_ax.legend(fontsize = 15)
+    log_curves_ax.legend(fontsize = 15)
+
+    curves_ax.set_xlabel("Epoch", fontsize = 15)
+    curves_ax.set_ylabel("MSE", fontsize = 15)
+    curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+
+    log_curves_ax.set_xlabel("Epoch", fontsize = 15)
+    log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
+    log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+
+    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+
+    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+
+    plt.close(curves_fig)
+    plt.close(log_curves_fig)
+
+    tf.keras.backend.clear_session()
+
+with open(file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_v{MAJOR_MINOR_NUMBER}.txt", mode = "w", buffering = 1) as logfile:
+    logfile.write(f"[INFO]: #{kinematic_set_number}: Bin k = {FIXED_BEAM_ENERGY}, Q^2 = {FIXED_Q_SQUARED}, xb = {FIXED_X_BJORKEN}, t = {FIXED_T_VALUE}\n")
+    logfile.write(f"[INFO]: Re[H] = {CFF_REAL_H_KM15}, Im[H] = {CFF_IMAG_H_KM15}, Re[E] = {CFF_REAL_E_KM15}, Im[H] = {CFF_IMAG_E_KM15}, ")
+    logfile.write(f"[INFO]: Re[Ht] = {CFF_REAL_HT_KM15}, Im[Ht] = {CFF_IMAG_HT_KM15}, Re[Et] = {CFF_REAL_ET_KM15}, Im[Ht] = {CFF_IMAG_ET_KM15}, ")
+    logfile.write(f"[INFO]: Total replicas: {NUMBER_OF_REPLICAS}")
+    logfile.write(f"[INFO]: Batch size: {_BATCH_SIZE}")
+    logfile.write(f"[INFO]: Maximum number of epochs: {_NUMBER_OF_EPOCHS}")
+    logfile.write(f"[INFO]: Out of {TOTAL_DATA_SIZE}, we picked {number_of_dnn_training_points} training, {number_of_dnn_validation_points} validation, and {number_of_dnn_testing_points} testing.")
+
+print(f"[INFO]: End of script reached!")
