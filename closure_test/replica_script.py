@@ -2111,7 +2111,10 @@ def cff_h_model():
 ##########################################
 
 # extract kinematic set number
-kinematic_set_number = int(sys.argv[1])
+task_id = int(sys.argv[1])
+
+kinematic_set_number = ((task_id - 1) // NUMBER_OF_REPLICAS) + 1
+replica_number = ((task_id - 1) % NUMBER_OF_REPLICAS) + 1
 
 scrubbed_df = pd.read_csv(
     filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/combined_pseudodata_v{MAJOR_MINOR_NUMBER}.csv"
@@ -2133,7 +2136,7 @@ if kinematic_set_number not in valid_kinematic_sets:
 print(f"[INFO]: Now running Kinematic Set #{kinematic_set_number}")
 
 test_dataframe = pd.read_csv(
-    filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
+    filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_set_{kinematic_set_number}_v{MAJOR_MINOR_NUMBER}.csv"
 )
 
 assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
@@ -2183,113 +2186,111 @@ print(f"[NOTE]: Testing/Temporary Split is {_DNN_TESTING_TEMPORARY_SPLIT_PERCENT
 print(f"[NOTE]: Training/Validation Split is {_DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE * 100}%, giving {number_of_dnn_validation_points} validation points (with ceiling).")
 print(f"[NOTE]: Remaining training data points are: {number_of_dnn_training_points}")
 
-for replica_index in range(NUMBER_OF_REPLICAS):
-    replica_number = replica_index + 1
-    print(f"[INFO]: This replica number is: Replica #{replica_number}")
+print(f"[INFO]: This replica number is: Replica #{replica_number}")
 
-    # testing/temporary split:
-    x_testing, x_remaining, y_testing, y_remaining = train_test_split(
-        x_data,
-        y_data,
-        test_size = _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE,
-        shuffle = True)
+# testing/temporary split:
+x_testing, x_remaining, y_testing, y_remaining = train_test_split(
+    x_data,
+    y_data,
+    test_size = _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE,
+    shuffle = True)
 
-    # training/validation split:
-    x_validation, x_training, y_validation, y_training = train_test_split(
-        x_remaining,
-        y_remaining,
-        test_size = _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE,
-        shuffle = True)
+# training/validation split:
+x_validation, x_training, y_validation, y_training = train_test_split(
+    x_remaining,
+    y_remaining,
+    test_size = _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE,
+    shuffle = True)
 
-    print(f"[INFO]: Detected size of x training: {len(x_training)}")
-    assert len(x_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected x-training size and computed size."
+print(f"[INFO]: Detected size of x training: {len(x_training)}")
+assert len(x_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected x-training size and computed size."
 
-    print(f"[INFO]: Detected size of y training: {len(y_training)}")
-    assert len(y_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected y-training size and computed size."
+print(f"[INFO]: Detected size of y training: {len(y_training)}")
+assert len(y_training) == number_of_dnn_training_points, "[ASSERT]: Mismatch between expected y-training size and computed size."
 
-    print(f"[INFO]: Detected size of x validation: {len(x_validation)}")
-    assert len(x_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected x-validation size and computed size."
+print(f"[INFO]: Detected size of x validation: {len(x_validation)}")
+assert len(x_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected x-validation size and computed size."
 
-    print(f"[INFO]: Detected size of y validation: {len(y_validation)}")
-    assert len(y_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected y-validation size and computed size."
+print(f"[INFO]: Detected size of y validation: {len(y_validation)}")
+assert len(y_validation) == number_of_dnn_validation_points, "[ASSERT]: Mismatch between expected y-validation size and computed size."
 
-    print(f"[INFO]: Detected size of x testing: {len(x_testing)}")
-    assert len(x_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected x-testing size and computed size."
+print(f"[INFO]: Detected size of x testing: {len(x_testing)}")
+assert len(x_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected x-testing size and computed size."
 
-    print(f"[INFO]: Detected size of x testing: {len(y_testing)}")
-    assert len(y_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected y-testing size and computed size."
+print(f"[INFO]: Detected size of x testing: {len(y_testing)}")
+assert len(y_testing) == number_of_dnn_testing_points, "[ASSERT]: Mismatch between expected y-testing size and computed size."
 
-    # find their flags
-    train_flags = pd.DataFrame({'flag': 'train'}, index = x_training.index)
-    validation_flags = pd.DataFrame({'flag': 'validation'}, index = x_validation.index)
-    test_flags = pd.DataFrame({'flag': 'test'}, index = x_testing.index)
+# find their flags
+train_flags = pd.DataFrame({'flag': 'train'}, index = x_training.index)
+validation_flags = pd.DataFrame({'flag': 'validation'}, index = x_validation.index)
+test_flags = pd.DataFrame({'flag': 'test'}, index = x_testing.index)
 
-    all_flags = pd.concat([train_flags, validation_flags, test_flags])
+all_flags = pd.concat([train_flags, validation_flags, test_flags])
 
-    test_dataframe = test_dataframe.merge(all_flags, left_index = True, right_index = True, how = 'left')
+test_dataframe = test_dataframe.merge(all_flags, left_index = True, right_index = True, how = 'left')
 
-    test_dataframe.to_csv(
-        path_or_buf = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/dnn_data_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.csv"
+test_dataframe.to_csv(
+    path_or_buf = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/dnn_data_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.csv"
+)
+
+if number_of_dnn_training_points <= _BATCH_SIZE:
+    print(f"[WARN]: Number of training points is less than or equal to the batch size. Setting batch size equal to {number_of_dnn_training_points}.")
+    _BATCH_SIZE = number_of_dnn_training_points
+
+##########################################
+# DNN Model Setup
+##########################################
+
+dnn_model = cff_h_model()
+
+dnn_model_history = dnn_model.fit(
+    x_training,
+    y_training,
+    validation_data = (x_validation, y_validation),
+    epochs = _NUMBER_OF_EPOCHS,
+    callbacks = [
+        tf.keras.callbacks.EarlyStopping(
+            monitor = 'val_loss',
+            # stop if no improvement for 25 epochs
+            patience = 25,
+            restore_best_weights = True
+        )
+    ],
+    batch_size = _BATCH_SIZE,
+    verbose = 0
     )
 
-    if number_of_dnn_training_points <= _BATCH_SIZE:
-        print(f"[WARN]: Number of training points is less than or equal to the batch size. Setting batch size equal to {number_of_dnn_training_points}.")
-        _BATCH_SIZE = number_of_dnn_training_points
+number_of_epochs_run = len(dnn_model_history.epoch)
+print(f"[NOTE]: The model ran for {number_of_epochs_run} epochs before early stopping.")
 
-    ##########################################
-    # DNN Model Setup
-    ##########################################
+dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
 
-    dnn_model = cff_h_model()
+training_loss_data = dnn_model_history.history["loss"]
+validation_loss_data = dnn_model_history.history["val_loss"]
 
-    dnn_model_history = dnn_model.fit(
-        x_training,
-        y_training,
-        validation_data = (x_validation, y_validation),
-        epochs = _NUMBER_OF_EPOCHS,
-        callbacks = [
-            tf.keras.callbacks.EarlyStopping(
-                monitor = 'val_loss',
-                # stop if no improvement for 25 epochs
-                patience = 25,
-                restore_best_weights = True
-            )
-        ],
-        batch_size = _BATCH_SIZE,
-        verbose = 0
-        )
+testing_loss, testing_accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
+print(f"Test Loss for Replica {replica_number}: {testing_loss}")
+print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
 
-    number_of_epochs_run = len(dnn_model_history.epoch)
-    print(f"[NOTE]: The model ran for {number_of_epochs_run} epochs before early stopping.")
+# save npz with DNN training information:
+np.savez(
+    file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.npz",
+    training_loss = training_loss_data,
+    validation_loss = validation_loss_data
+    )
+# make DF with DNN training information
+pd.DataFrame(dnn_model_history.history).to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
+    index = False)
+# make DF with testing metrics:
+pd.DataFrame({
+    'testing_loss': testing_loss,
+    'testing_accuracy': testing_accuracy
+}).to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_loss_data.csv", 
+    index = False)
 
-    dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
-
-    training_loss_data = dnn_model_history.history["loss"]
-    validation_loss_data = dnn_model_history.history["val_loss"]
-
-    testing_loss, testing_accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
-    print(f"Test Loss for Replica {replica_number}: {testing_loss}")
-    print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
-
-    # save npz with DNN training information:
-    np.savez(
-        file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.npz",
-        training_loss = training_loss_data,
-        validation_loss = validation_loss_data
-        )
-    # make DF with DNN training information
-    pd.DataFrame(dnn_model_history.history).to_csv(
-        f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
-        index = False)
-    # make DF with testing metrics:
-    pd.DataFrame({
-        'testing_loss': testing_loss,
-        'testing_accuracy': testing_accuracy
-    }).to_csv(
-        f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
-        index = False)
-
-    tf.keras.backend.clear_session()
+tf.keras.backend.clear_session()
 
 with open(file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_v{MAJOR_MINOR_NUMBER}.txt", mode = "w", buffering = 1) as logfile:
     logfile.write(f"[INFO]: #{kinematic_set_number}: Bin k = {FIXED_BEAM_ENERGY}, Q^2 = {FIXED_Q_SQUARED}, xb = {FIXED_X_BJORKEN}, t = {FIXED_T_VALUE}\n")
