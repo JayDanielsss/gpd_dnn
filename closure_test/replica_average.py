@@ -2,7 +2,7 @@
 # FILE INFORMATION:
 # Purpose: averages over all the replicas
 # Created: 20260107
-# Last changed: 20260120
+# Last changed: 20260226
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -81,87 +81,6 @@ print(f"[INFO]: Number of CPUs Available: {len(tf.config.list_physical_devices('
 print(f"[INFO]: Checking the GPU name: {tf.test.gpu_device_name()}")
 
 ##########################################
-# Reading the Datafile:
-##########################################
-
-test_dataframe = pd.read_csv(
-    filepath_or_buffer = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
-)
-
-# this is the entire dataset! (i.e. training+validation)
-x_data = test_dataframe[["t", "x_b", "q_squared", "phi"]]
-y_data = test_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
-
-TOTAL_DATA_SIZE = len(x_data)
-print(f"[INFO]: Total data size is: {TOTAL_DATA_SIZE}")
-
-FIXED_BEAM_ENERGY = test_dataframe["k"].iloc[0]
-FIXED_Q_SQUARED = test_dataframe["q_squared"].iloc[0]
-FIXED_X_BJORKEN = test_dataframe["x_b"].iloc[0]
-FIXED_T_VALUE = test_dataframe["t"].iloc[0]
-
-print(f"[INFO]: Selected beam energy k = {FIXED_BEAM_ENERGY}")
-print(f"[INFO]: Selected Q^2 = {FIXED_Q_SQUARED}")
-print(f"[INFO]: Selected xB = {FIXED_X_BJORKEN}")
-print(f"[INFO]: Selected t = {FIXED_T_VALUE}")
-
-CFF_REAL_H_KM15 = test_dataframe["Re[H]"].iloc[0]
-CFF_IMAG_H_KM15 = test_dataframe["Im[H]"].iloc[0]
-CFF_REAL_E_KM15 = test_dataframe["Re[E]"].iloc[0]
-CFF_IMAG_E_KM15 = test_dataframe["Im[E]"].iloc[0]
-CFF_REAL_HT_KM15 = test_dataframe["Re[Ht]"].iloc[0]
-CFF_IMAG_HT_KM15 = test_dataframe["Im[Ht]"].iloc[0]
-CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
-CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
-
-CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
-CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
-CFF_E_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
-CFF_E_TILDE_KM15 = complex(CFF_REAL_ET_KM15, CFF_IMAG_ET_KM15)
-
-print(f"[INFO]: Selected CFF H = {CFF_H_KM15}")
-print(f"[INFO]: Selected CFF E = {CFF_E_KM15}")
-print(f"[INFO]: Selected CFF Ht = {CFF_H_TILDE_KM15}")
-print(f"[INFO]: Selected CFF Et = {CFF_E_TILDE_KM15}")
-
-title_string = (
-    rf"$Q^2 = {FIXED_BEAM_ENERGY:.2f}$ GeV$^2$, "
-    rf"$x_B = {FIXED_X_BJORKEN:.2f}$, "
-    rf"$t = {FIXED_T_VALUE:.2f}$, "
-    rf"$k = {FIXED_BEAM_ENERGY:.2f}$ GeV"
-)
-
-km15_cff_string = (
-    rf"$\mathcal{{H}} = {CFF_H_KM15:.3f}$, "
-    rf"$\mathcal{{E}} = {CFF_E_KM15:.3f}$, "
-    rf"$\widetilde{{\mathcal{{H}}}} = {CFF_H_TILDE_KM15:.3f}$, "
-    rf"$\widetilde{{\mathcal{{E}}}} = {CFF_E_TILDE_KM15:.3f}$ "
-)
-
-##########################################
-# Initializing the Phi Array
-##########################################
-
-STARTING_PHI_VALUE_IN_DEGREES = test_dataframe['phi'].min()
-ENDING_PHI_VALUE_IN_DEGREES = test_dataframe['phi'].max()
-NUMBER_OF_PHI_POINTS = test_dataframe['phi'].nunique()
-
-print(f"[INFO]: Starting value of phi: {STARTING_PHI_VALUE_IN_DEGREES}")
-print(f"[INFO]: Ending value of phi: {ENDING_PHI_VALUE_IN_DEGREES}")
-print(f"[INFO]: Total number of phi: {NUMBER_OF_PHI_POINTS}")
-
-# phi_array_in_degrees = np.linspace(
-#     start = STARTING_PHI_VALUE_IN_DEGREES,
-#     stop = ENDING_PHI_VALUE_IN_DEGREES,
-#     num = NUMBER_OF_PHI_POINTS)
-
-# phi_array_in_radians = [np.radians(degree_value) for degree_value in phi_array_in_degrees]
-
-phi_array_in_radians = np.linspace(
-    start = STARTING_PHI_VALUE_IN_DEGREES,
-    stop = ENDING_PHI_VALUE_IN_DEGREES,
-    num = NUMBER_OF_PHI_POINTS)
-##########################################
 # DNN Model Setup
 ##########################################
 
@@ -171,9 +90,6 @@ _MASS_OF_PROTON_IN_GEV = tf.constant(0.93827208816)
 _QED_FINE_STRUCTURE = tf.constant(1./137.035999177)
 _ELECTRIC_FORM_FACTOR_CONSTANT = tf.constant(0.710649)
 _PROTON_MAGNETIC_MOMENT = tf.constant(2.79284734463)
-
-assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
-assert test_dataframe["k"].iloc[0] == test_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
 
 def compute_fe(t):
     return 1./ (1. - (t / _ELECTRIC_FORM_FACTOR_CONSTANT))**2
@@ -2101,22 +2017,153 @@ def bkm10_dsa(
     return dsa
 
 ##########################################
+# Reading the Datafile:
+##########################################
+
+# multithread on this index
+kinematic_set_number = sys.argv[1]
+
+print(f"[INFO]: Now running Kinematic Set #{kinematic_set_number}")
+
+test_dataframe = pd.read_csv(
+    filepath_or_buffer = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
+)
+
+assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+assert test_dataframe["k"].iloc[0] == test_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+
+# this is the entire dataset! (i.e. training+validation)
+x_data = test_dataframe[["t", "x_b", "q_squared", "phi"]]
+y_data = test_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
+
+TOTAL_DATA_SIZE = len(x_data)
+print(f"[INFO]: Total data size is: {TOTAL_DATA_SIZE}")
+
+FIXED_BEAM_ENERGY = test_dataframe["k"].iloc[0]
+FIXED_Q_SQUARED = test_dataframe["q_squared"].iloc[0]
+FIXED_X_BJORKEN = test_dataframe["x_b"].iloc[0]
+FIXED_T_VALUE = test_dataframe["t"].iloc[0]
+
+print(f"[INFO]: Selected beam energy k = {FIXED_BEAM_ENERGY}")
+print(f"[INFO]: Selected Q^2 = {FIXED_Q_SQUARED}")
+print(f"[INFO]: Selected xB = {FIXED_X_BJORKEN}")
+print(f"[INFO]: Selected t = {FIXED_T_VALUE}")
+
+CFF_REAL_H_KM15 = test_dataframe["Re[H]"].iloc[0]
+CFF_IMAG_H_KM15 = test_dataframe["Im[H]"].iloc[0]
+CFF_REAL_E_KM15 = test_dataframe["Re[E]"].iloc[0]
+CFF_IMAG_E_KM15 = test_dataframe["Im[E]"].iloc[0]
+CFF_REAL_HT_KM15 = test_dataframe["Re[Ht]"].iloc[0]
+CFF_IMAG_HT_KM15 = test_dataframe["Im[Ht]"].iloc[0]
+CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
+CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
+
+CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
+CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
+CFF_E_KM15 = complex(CFF_REAL_E_KM15, CFF_IMAG_E_KM15)
+CFF_E_TILDE_KM15 = complex(CFF_REAL_ET_KM15, CFF_IMAG_ET_KM15)
+
+print(f"[INFO]: Selected CFF H = {CFF_H_KM15}")
+print(f"[INFO]: Selected CFF E = {CFF_E_KM15}")
+print(f"[INFO]: Selected CFF Ht = {CFF_H_TILDE_KM15}")
+print(f"[INFO]: Selected CFF Et = {CFF_E_TILDE_KM15}")
+
+title_string = (
+    rf"$Q^2 = {FIXED_Q_SQUARED:.2f}$ GeV$^2$, "
+    rf"$x_B = {FIXED_X_BJORKEN:.2f}$, "
+    rf"$t = {FIXED_T_VALUE:.2f}$, "
+    rf"$k = {FIXED_BEAM_ENERGY:.2f}$ GeV"
+)
+
+km15_cff_string = (
+    rf"$\mathcal{{H}} = {CFF_H_KM15:.3f}$, "
+    rf"$\mathcal{{E}} = {CFF_E_KM15:.3f}$, "
+    rf"$\widetilde{{\mathcal{{H}}}} = {CFF_H_TILDE_KM15:.3f}$, "
+    rf"$\widetilde{{\mathcal{{E}}}} = {CFF_E_TILDE_KM15:.3f}$ "
+)
+
+##########################################
+# Initializing the Phi Array
+##########################################
+
+STARTING_PHI_VALUE_IN_RADIANS = test_dataframe['phi'].min()
+ENDING_PHI_VALUE_IN_RADIANS = test_dataframe['phi'].max()
+NUMBER_OF_PHI_POINTS = test_dataframe['phi'].nunique()
+
+print(f"[INFO]: Starting value of phi: {STARTING_PHI_VALUE_IN_RADIANS}")
+print(f"[INFO]: Ending value of phi: {ENDING_PHI_VALUE_IN_RADIANS}")
+print(f"[INFO]: Total number of phi: {NUMBER_OF_PHI_POINTS}")
+
+# phi_array_in_degrees = np.linspace(
+#     start = STARTING_PHI_VALUE_IN_DEGREES,
+#     stop = ENDING_PHI_VALUE_IN_DEGREES,
+#     num = NUMBER_OF_PHI_POINTS)
+
+# phi_array_in_radians = [np.radians(degree_value) for degree_value in phi_array_in_degrees]
+
+phi_array_in_radians = np.linspace(
+    start = STARTING_PHI_VALUE_IN_RADIANS,
+    stop = ENDING_PHI_VALUE_IN_RADIANS,
+    num = NUMBER_OF_PHI_POINTS)
+
+##########################################
 # Making individual replica predictions
 ##########################################
 
-replica_paths = sorted(glob.glob(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/replicas/replica_*_v{MAJOR_MINOR_NUMBER}.keras"))
+replica_paths = sorted(glob.glob(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_*_v{MAJOR_MINOR_NUMBER}.keras"))
+
 replicas = [tf.keras.models.load_model(
     path,
     compile = False,
     safe_mode = False) for path in replica_paths]
 
-print(f"[INFO]: Loaded {len(replicas)} replica models.")
+print(f"Loaded {len(replicas)} replica models.")
 
 all_predictions = []
 
-for replica in replicas:
+for replica_index, replica in enumerate(replicas):
+    replica_number = replica_index + 1
     predicted_outputs = replica.predict(x_data) # predicting using x_data
     all_predictions.append(predicted_outputs)
+
+    training_history = pd.read_csv(
+        filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_losses_vs_epochs.csv"
+    )
+
+    number_of_epochs_run = 
+
+    curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
+    log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
+
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.array([np.max(training_loss_data) for number in training_loss_data]), color = "red", label = "Initial Loss Value")
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.zeros(shape = (number_of_epochs_run)), color = "green", label = r"Loss $= 0$")
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), training_loss_data, color = "blue", label = "Training Loss")
+    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), validation_loss_data, color = "purple", label = "Validation Loss")
+
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.array([np.max(training_loss_data) for number in training_loss_data])), color = "red", label = "Initial Loss Value")
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.zeros(shape = (number_of_epochs_run)) + 1e-20), color = "green", label = r"Loss $= 0$")
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(training_loss_data), color = "blue", label = "Log Training Loss")
+    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(validation_loss_data), color = "purple", label = "Log Validation Loss")
+
+    curves_ax.legend(fontsize = 15)
+    log_curves_ax.legend(fontsize = 15)
+
+    curves_ax.set_xlabel("Epoch", fontsize = 15)
+    curves_ax.set_ylabel("MSE", fontsize = 15)
+    curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+
+    log_curves_ax.set_xlabel("Epoch", fontsize = 15)
+    log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
+    log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+
+    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+
+    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+
+    plt.close(curves_fig)
+    plt.close(log_curves_fig)
 
 all_predictions = np.array(all_predictions)
 
@@ -2300,8 +2347,8 @@ ax2.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
 ax2.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
 ax2.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-fig2.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/dnn_xsec_vs_phi_v{MAJOR_MINOR_NUMBER}.png")
-fig2.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/dnn_xsec_vs_phi_v{MAJOR_MINOR_NUMBER}.eps")
+fig2.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_xsec_vs_phi_v{MAJOR_MINOR_NUMBER}.png")
+fig2.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_xsec_vs_phi_v{MAJOR_MINOR_NUMBER}.eps")
 plt.show()
 plt.close(fig2)
 
@@ -2366,8 +2413,8 @@ ax3.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
 ax3.set_ylabel(r"BSA", fontsize = 16)
 ax3.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-fig3.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/dnn_bsa_vs_phi_v{MAJOR_MINOR_NUMBER}.png")
-fig3.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/dnn_bsa_vs_phi_v{MAJOR_MINOR_NUMBER}.eps")
+fig3.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_bsa_vs_phi_v{MAJOR_MINOR_NUMBER}.png")
+fig3.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_bsa_vs_phi_v{MAJOR_MINOR_NUMBER}.eps")
 plt.show()
 plt.close(fig3)
 
@@ -2422,8 +2469,8 @@ ax4.set_ylabel("Frequency", rotation = 90.)
 ax4.set_xlabel(r"Re$[\mathcal{H}]$")
 ax4.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 ax4.legend()
-fig4.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.png")
-fig4.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.eps")
+fig4.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.png")
+fig4.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.eps")
 plt.show()
 plt.close(fig4)
 
@@ -2442,8 +2489,8 @@ ax5.set_ylabel("Frequency", rotation = 90.)
 ax5.set_xlabel(r"Im$[\mathcal{H}]$")
 ax5.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 ax5.legend()
-fig5.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_imag_fits_v{MAJOR_MINOR_NUMBER}.png")
-fig5.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_imag_fits_v{MAJOR_MINOR_NUMBER}.eps")
+fig5.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_imag_fits_v{MAJOR_MINOR_NUMBER}.png")
+fig5.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_imag_fits_v{MAJOR_MINOR_NUMBER}.eps")
 plt.show()
 plt.close(fig5)
 
@@ -2533,8 +2580,8 @@ post_cff_fit_xsec_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
 post_cff_fit_xsec_axis.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
 post_cff_fit_xsec_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
+post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
+post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(post_cff_fit_xsec_figure)
 
 post_cff_fit_bsa_figure, post_cff_fit_bsa_axis = plt.subplots(1, figsize = (7, 7))  
@@ -2590,8 +2637,8 @@ post_cff_fit_bsa_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
 post_cff_fit_bsa_axis.set_ylabel(r"BSA", fontsize = 16)
 post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
+post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
+post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(post_cff_fit_bsa_figure)
 
 predicted_h_bkm10 = DifferentialCrossSection(
@@ -2675,8 +2722,8 @@ post_cff_fit_xsec_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
 post_cff_fit_xsec_axis.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
 post_cff_fit_xsec_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
+post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
+post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(post_cff_fit_xsec_figure)
 
 post_cff_fit_bsa_figure, post_cff_fit_bsa_axis = plt.subplots(1, figsize = (7, 7))
@@ -2732,8 +2779,8 @@ post_cff_fit_bsa_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
 post_cff_fit_bsa_axis.set_ylabel(r"BSA", fontsize = 16)
 post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
+post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
+post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(post_cff_fit_bsa_figure)
 
 cff_h_correlation_figure, cff_h_correlation_axis = plt.subplots(1, figsize = (7, 7))
@@ -2746,14 +2793,14 @@ post_cff_fit_bsa_axis.set_xlabel(r"Rm$[\mathcal{H}]$", fontsize = 16)
 post_cff_fit_bsa_axis.set_ylabel(r"Im$[\mathcal{H}]$", fontsize = 16)
 post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
 plt.legend()
-cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.png")
-cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.eps")
+cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.png")
+cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.eps")
 plt.close(cff_h_correlation_figure)
 
 cff_corner_plot_data = np.vstack([cff_h_real_pred_per_replica, cff_h_imag_pred_per_replica]).T
 
 cff_corner_plot = corner.corner(
-    cff_corner_plot_data,
+    cff_corner_plot_data.astype(float),
     labels = [
         r"Re$[\mathcal{H}]$",
         r"Im$[\mathcal{H}]$",
@@ -2776,7 +2823,7 @@ cff_corner_plot = corner.corner(
     figsize = (9, 9)
 )
 
-cff_corner_plot.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.png")
-cff_corner_plot.savefig(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.eps")
+cff_corner_plot.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.png")
+cff_corner_plot.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.eps")
 
 print(f"[INFO]: End of script reached!")
