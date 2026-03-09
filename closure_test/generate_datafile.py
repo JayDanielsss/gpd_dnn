@@ -4,7 +4,7 @@
 # pseudodata for training DNN models down
 # the line.
 # Created: 20260107
-# Last changed: 20260308
+# Last changed: 20260309
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -59,28 +59,6 @@ os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/data", exist_ok = True)
 os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/plots", exist_ok = True)
 os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/learning_curves", exist_ok = True)
 os.makedirs(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/replicas", exist_ok = True)
-
-##########################################
-# Matplotlib Plotting Customizability
-##########################################
-
-plt.rcParams.update({
-    "text.usetex": False, "font.family": "serif",
-})
-plt.rcParams['xtick.direction'] = 'in'
-plt.rcParams['xtick.major.size'] = 8.5
-plt.rcParams['xtick.major.width'] = 0.5
-plt.rcParams['xtick.minor.size'] = 2.5
-plt.rcParams['xtick.minor.width'] = 0.5
-plt.rcParams['xtick.minor.visible'] = True
-plt.rcParams['xtick.top'] = True
-plt.rcParams['ytick.direction'] = 'in'
-plt.rcParams['ytick.major.size'] = 8.5
-plt.rcParams['ytick.major.width'] = 0.5
-plt.rcParams['ytick.minor.size'] = 2.5
-plt.rcParams['ytick.minor.width'] = 0.5
-plt.rcParams['ytick.minor.visible'] = True
-plt.rcParams['ytick.right'] = True
 
 ##########################################
 # Initializing the Phi Array
