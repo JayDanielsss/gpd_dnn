@@ -372,7 +372,7 @@ for phi_index, phi_value in enumerate(phi_array_in_radians):
     this_kinematic_set_dataframe.append(new_entry)
 
 pd.DataFrame(this_kinematic_set_dataframe).to_csv(
-    path_or_buf = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
+    path_or_buf = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_set_{kinematic_set_number}_v{MAJOR_MINOR_NUMBER}.csv"
 )
 
 # clean up:
