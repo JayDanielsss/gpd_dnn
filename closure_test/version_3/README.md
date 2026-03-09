@@ -2,8 +2,28 @@ Information about the various iterations of this project.
 
 Versions:
 
-1. 10 replicas, 750 epochs, 4 hidden layers with 10, 10, 10, 10 ReLU nodes each, standard BKM10-generated $d^{4}\sigma$ data: 324 training, 32 validation, 4 testing.
+## Version 3_1:
 
-Comments:
+`version_3_1` is run with the `SimultaneousFitLoss` class active with weights $w_{\text{BSA}} = 0.5$ and $w_{d^{4}\sigma} = 0.5$.
 
-1. As of 2025/11/18, we got a fit of Re[$\mathcal{H}$]. Not so bad! On the other hand, the fit of Im[$\mathcal{H}]$ is strange!!
+### DNN Hyperparameters:
+Replicas: 20
+Epochs (without EarlyStop): 750
+Input nodes: 4
+Output nodes: 2
+Hidden layers: 1
+Nodes per layer: 10
+Activation per layer: [ReLU]
+Final activation: Linear
+
+### Data:
+Training points: $231$
+Validation points: $57$
+Testing points: $72$
+Test/Train split: $20/80$
+Train/Validation split: $80/20$
+Sum: $231 + 57 + 72 = 360$
+Observables: $\text{BSA}$, $d^{4}\sigma$
+
+### Comments:
+1. Confirmed same issue: $\text{BSA}$ fit well, but $\d^{4}\sigma$ is systematically offset during the fitting.
