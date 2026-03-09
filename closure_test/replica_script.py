@@ -3,7 +3,7 @@
 # Purpose: runs *a* replica based on a single 
 # DNN architecture.
 # Created: 20260107
-# Last changed: 20260226
+# Last changed: 20260308
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -41,6 +41,7 @@ _NUMBER_NODES_HIDDEN_2 = 10
 _NUMBER_NODES_HIDDEN_3 = 10
 _NUMBER_NODES_HIDDEN_4 = 10
 
+NUMBER_OF_REPLICAS = 100
 _NUMBER_OF_EPOCHS = 750
 _BATCH_SIZE = 25
 
@@ -60,10 +61,8 @@ print(f"[INFO]: Replica DNN has {_NUMBER_NODES_HIDDEN_4} nodes in 4th hidden lay
 ##########################################
 
 import sys
-import glob
 
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -76,49 +75,13 @@ from bkm10_lib.cff_inputs import CFFInputs
 print(f"[INFO]: Libraries imported!")
 
 ##########################################
-# Matplotlib Plotting Customizability
-##########################################
-
-plt.rcParams.update({
-    "text.usetex": False, "font.family": "serif",
-})
-plt.rcParams['xtick.direction'] = 'in'
-plt.rcParams['xtick.major.size'] = 8.5
-plt.rcParams['xtick.major.width'] = 0.5
-plt.rcParams['xtick.minor.size'] = 2.5
-plt.rcParams['xtick.minor.width'] = 0.5
-plt.rcParams['xtick.minor.visible'] = True
-plt.rcParams['xtick.top'] = True
-plt.rcParams['ytick.direction'] = 'in'
-plt.rcParams['ytick.major.size'] = 8.5
-plt.rcParams['ytick.major.width'] = 0.5
-plt.rcParams['ytick.minor.size'] = 2.5
-plt.rcParams['ytick.minor.width'] = 0.5
-plt.rcParams['ytick.minor.visible'] = True
-plt.rcParams['ytick.right'] = True
-
-##########################################
 # Tensorflow Configuration
 ##########################################
-
-# BE EXTREMELY CAREFUL ABOUT THIS SETTING!
-# It can change numerical precision!
-#_FLOATX = tf.float32
 
 print(f"[INFO]: Physical devices available to TF are: {tf.config.list_physical_devices()}")
 print(f"[INFO]: Number of GPUs Available: {len(tf.config.list_physical_devices('GPU'))}")
 print(f"[INFO]: Number of CPUs Available: {len(tf.config.list_physical_devices('CPU'))}")
 print(f"[INFO]: Checking the GPU name: {tf.test.gpu_device_name()}")
-
-_FLOATX = tf.float32
-
-# below did NOT work for fixing the stupid tf type mismatch
-# tf.keras.mixed_precision.set_global_policy('float32')
-
-print(tf.config.list_physical_devices())
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-print("Num CPUs Available: ", len(tf.config.list_physical_devices('CPU')))
-print(tf.test.gpu_device_name())
 
 ### USE THIS FOR TENSORFLOW ONLY ###
 _CONVERSION_GEV6_GEV4NB = tf.constant(.389379 * 1000000.)
@@ -2147,11 +2110,27 @@ def cff_h_model():
 # Reading the Datafile:
 ##########################################
 
-kinematic_set_number = sys.argv[1]
+# extract kinematic set number
+kinematic_set_number = int(sys.argv[1])
+
+scrubbed_df = pd.read_csv(
+    filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/combined_pseudodata_v{MAJOR_MINOR_NUMBER}.csv"
+)
+
+valid_kinematic_sets = set(scrubbed_df['set'].unique())
+
+if kinematic_set_number not in valid_kinematic_sets:
+    print(f"[WARN]: Kinematic set number {kinematic_set_number} not viable for physical observables! Exiting...")
+    with open(
+        file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replica_log_set_{kinematic_set_number}_v{MAJOR_MINOR_NUMBER}.txt",
+        mode = "w",
+        buffering = 1) as logfile:
+
+        logfile.write(f"Kinematic Set Number: {kinematic_set_number}\n")
+        logfile.write(f"Kinematic set number {kinematic_set_number} was not in list of valid kinematic sets. Exiting...")
+    sys.exit(0)
 
 print(f"[INFO]: Now running Kinematic Set #{kinematic_set_number}")
-
-NUMBER_OF_REPLICAS = 100
 
 test_dataframe = pd.read_csv(
     filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
@@ -2258,100 +2237,6 @@ for replica_index in range(NUMBER_OF_REPLICAS):
         _BATCH_SIZE = number_of_dnn_training_points
 
     ##########################################
-    # Finding Observable Values Labeled by
-    # Training/Validation/Testing
-    ##########################################
-
-    # a numpy array of all the corresponding phi-points
-    # if you do NOT UNDERSTAND why the code below selects the phi-values that are used in training, please run each piece interactively
-    x_training_phi_points = np.array(x_training["phi"])
-    x_validation_phi_points = np.array(x_validation["phi"])
-    x_testing_phi_points = np.array(x_testing["phi"])
-
-    xsecs = DifferentialCrossSection(
-        configuration = {
-            "kinematics": BKM10Inputs(
-                lab_kinematics_k = FIXED_BEAM_ENERGY,
-                squared_Q_momentum_transfer = FIXED_Q_SQUARED,
-                x_Bjorken = FIXED_X_BJORKEN,
-                squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
-            "cff_inputs": CFFInputs(
-                compton_form_factor_h = CFF_H_KM15,
-                compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
-                compton_form_factor_e = CFF_E_KM15,
-                compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-            "using_ww": True
-        },
-        verbose = False,
-        debugging = False)
-
-    x_training_bkm10_xsec = xsecs.compute_cross_section(
-        x_training_phi_points,
-        lepton_helicity = 0.0,
-        target_polarization = 0.0).real
-
-    x_validation_bkm10_xsec = xsecs.compute_cross_section(
-        x_validation_phi_points,
-        lepton_helicity = 0.0,
-        target_polarization = 0.0).real
-
-    x_testing_bkm10_xsec = xsecs.compute_cross_section(
-        x_testing_phi_points,
-        lepton_helicity = 0.0,
-        target_polarization = 0.0).real
-
-    x_training_bkm10_bsa = xsecs.compute_bsa(
-        x_training_phi_points,
-        target_polarization = 0.0).real
-
-    x_validation_bkm10_bsa = xsecs.compute_bsa(
-        x_validation_phi_points,
-        target_polarization = 0.0).real
-
-    x_testing_bkm10_bsa = xsecs.compute_bsa(
-        x_testing_phi_points,
-        target_polarization = 0.0).real
-
-    title_string = (
-        rf"$Q^2 = {FIXED_Q_SQUARED:.2f}$ GeV$^2$, "
-        rf"$x_B = {FIXED_X_BJORKEN:.2f}$, "
-        rf"$t = {FIXED_T_VALUE:.2f}$ ,"
-        rf"$k = {FIXED_BEAM_ENERGY:.2f}$ GeV"
-    )
-    km15_cff_string = (
-        rf"$\mathcal{{H}} = {CFF_H_KM15:.3f}$, "
-        rf"$\mathcal{{E}} = {CFF_E_KM15:.3f}$, "
-        rf"$\widetilde{{\mathcal{{H}}}} = {CFF_H_TILDE_KM15:.3f}$, "
-        rf"$\widetilde{{\mathcal{{E}}}} = {CFF_E_TILDE_KM15:.3f}$ "
-    )
-
-    data_vis_figure, data_vis_axis = plt.subplots(1, 1, figsize = (8, 7))
-    data_vis_axis.scatter(x_training_phi_points, x_training_bkm10_xsec, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
-    data_vis_axis.scatter(x_validation_phi_points, x_validation_bkm10_xsec, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
-    data_vis_axis.scatter(x_testing_phi_points, x_testing_bkm10_xsec, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
-    data_vis_axis.legend(fontsize = 14.)
-    data_vis_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
-    data_vis_axis.set_ylabel(r"$d^{4}\sigma$", fontsize = 16.)
-    data_vis_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-    data_vis_axis.grid(visible = True)
-    data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-    data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-    plt.close(data_vis_figure)
-
-    bsa_train_test_split_figure, bsa_train_test_split_axis = plt.subplots(1, 1, figsize = (8, 7))
-    bsa_train_test_split_axis.scatter(x_training_phi_points, x_training_bkm10_bsa, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
-    bsa_train_test_split_axis.scatter(x_validation_phi_points, x_validation_bkm10_bsa, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
-    bsa_train_test_split_axis.scatter(x_testing_phi_points, x_testing_bkm10_bsa, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
-    bsa_train_test_split_axis.legend(fontsize = 14.)
-    bsa_train_test_split_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
-    bsa_train_test_split_axis.set_ylabel(r"BSA", fontsize = 16.)
-    bsa_train_test_split_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-    bsa_train_test_split_axis.grid(visible = True)
-    bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-    bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-    plt.close(bsa_train_test_split_figure)
-
-    ##########################################
     # DNN Model Setup
     ##########################################
 
@@ -2365,7 +2250,8 @@ for replica_index in range(NUMBER_OF_REPLICAS):
         callbacks = [
             tf.keras.callbacks.EarlyStopping(
                 monitor = 'val_loss',
-                patience = 25, # stop if no improvement for 25 epochs
+                # stop if no improvement for 25 epochs
+                patience = 25,
                 restore_best_weights = True
             )
         ],
@@ -2385,38 +2271,23 @@ for replica_index in range(NUMBER_OF_REPLICAS):
     print(f"Test Loss for Replica {replica_number}: {testing_loss}")
     print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
 
-    curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
-    log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
-
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.array([np.max(training_loss_data) for number in training_loss_data]), color = "red", label = "Initial Loss Value")
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.zeros(shape = (number_of_epochs_run)), color = "green", label = r"Loss $= 0$")
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), training_loss_data, color = "blue", label = "Training Loss")
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), validation_loss_data, color = "purple", label = "Validation Loss")
-
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.array([np.max(training_loss_data) for number in training_loss_data])), color = "red", label = "Initial Loss Value")
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.zeros(shape = (number_of_epochs_run)) + 1e-20), color = "green", label = r"Loss $= 0$")
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(training_loss_data), color = "blue", label = "Log Training Loss")
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(validation_loss_data), color = "purple", label = "Log Validation Loss")
-
-    curves_ax.legend(fontsize = 15)
-    log_curves_ax.legend(fontsize = 15)
-
-    curves_ax.set_xlabel("Epoch", fontsize = 15)
-    curves_ax.set_ylabel("MSE", fontsize = 15)
-    curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
-
-    log_curves_ax.set_xlabel("Epoch", fontsize = 15)
-    log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
-    log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
-
-    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-
-    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-
-    plt.close(curves_fig)
-    plt.close(log_curves_fig)
+    # save npz with DNN training information:
+    np.savez(
+        file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.npz",
+        training_loss = training_loss_data,
+        validation_loss = validation_loss_data
+        )
+    # make DF with DNN training information
+    pd.DataFrame(dnn_model_history.history).to_csv(
+        f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
+        index = False)
+    # make DF with testing metrics:
+    pd.DataFrame({
+        'testing_loss': testing_loss,
+        'testing_accuracy': testing_accuracy
+    }).to_csv(
+        f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
+        index = False)
 
     tf.keras.backend.clear_session()
 
