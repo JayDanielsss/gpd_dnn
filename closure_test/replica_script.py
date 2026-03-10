@@ -3,7 +3,7 @@
 # Purpose: runs *a* replica based on a single 
 # DNN architecture.
 # Created: 20260107
-# Last changed: 20260308
+# Last changed: 20260310
 ##########################################
 
 print(f"[INFO]: Script began running!")
@@ -67,10 +67,6 @@ import numpy as np
 import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
-
-from bkm10_lib.core import DifferentialCrossSection
-from bkm10_lib.inputs import BKM10Inputs
-from bkm10_lib.cff_inputs import CFFInputs
 
 print(f"[INFO]: Libraries imported!")
 
@@ -2103,7 +2099,11 @@ def cff_h_model():
     model.compile(
         optimizer = tf.keras.optimizers.Adam(), 
         loss = SimultaneousObservablesLoss(),
-        metrics = ["accuracy"])
+        metrics = [
+            "mae", 
+            "mse"
+            ])
+    
     return model
 
 ##########################################
@@ -2257,7 +2257,7 @@ dnn_model_history = dnn_model.fit(
         )
     ],
     batch_size = _BATCH_SIZE,
-    verbose = 0
+    verbose = 1
     )
 
 number_of_epochs_run = len(dnn_model_history.epoch)
@@ -2294,11 +2294,11 @@ tf.keras.backend.clear_session()
 
 with open(file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_v{MAJOR_MINOR_NUMBER}.txt", mode = "w", buffering = 1) as logfile:
     logfile.write(f"[INFO]: #{kinematic_set_number}: Bin k = {FIXED_BEAM_ENERGY}, Q^2 = {FIXED_Q_SQUARED}, xb = {FIXED_X_BJORKEN}, t = {FIXED_T_VALUE}\n")
-    logfile.write(f"[INFO]: Re[H] = {CFF_REAL_H_KM15}, Im[H] = {CFF_IMAG_H_KM15}, Re[E] = {CFF_REAL_E_KM15}, Im[H] = {CFF_IMAG_E_KM15}, ")
-    logfile.write(f"[INFO]: Re[Ht] = {CFF_REAL_HT_KM15}, Im[Ht] = {CFF_IMAG_HT_KM15}, Re[Et] = {CFF_REAL_ET_KM15}, Im[Ht] = {CFF_IMAG_ET_KM15}, ")
-    logfile.write(f"[INFO]: Total replicas: {NUMBER_OF_REPLICAS}")
-    logfile.write(f"[INFO]: Batch size: {_BATCH_SIZE}")
-    logfile.write(f"[INFO]: Maximum number of epochs: {_NUMBER_OF_EPOCHS}")
-    logfile.write(f"[INFO]: Out of {TOTAL_DATA_SIZE}, we picked {number_of_dnn_training_points} training, {number_of_dnn_validation_points} validation, and {number_of_dnn_testing_points} testing.")
+    logfile.write(f"[INFO]: Re[H] = {CFF_REAL_H_KM15}, Im[H] = {CFF_IMAG_H_KM15}, Re[E] = {CFF_REAL_E_KM15}, Im[H] = {CFF_IMAG_E_KM15}\n")
+    logfile.write(f"[INFO]: Re[Ht] = {CFF_REAL_HT_KM15}, Im[Ht] = {CFF_IMAG_HT_KM15}, Re[Et] = {CFF_REAL_ET_KM15}, Im[Ht] = {CFF_IMAG_ET_KM15}\n")
+    logfile.write(f"[INFO]: Total replicas: {NUMBER_OF_REPLICAS}\n")
+    logfile.write(f"[INFO]: Batch size: {_BATCH_SIZE}\n")
+    logfile.write(f"[INFO]: Maximum number of epochs: {_NUMBER_OF_EPOCHS}\n")
+    logfile.write(f"[INFO]: Out of {TOTAL_DATA_SIZE}, we picked {number_of_dnn_training_points} training, {number_of_dnn_validation_points} validation, and {number_of_dnn_testing_points} testing.\n")
 
 print(f"[INFO]: End of script reached!")
