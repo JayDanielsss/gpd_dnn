@@ -182,3 +182,7 @@ cython_debug/
 
 # .csv files
 *.csv
+
+# NumPy Array files:
+*.npz
+*.npy
