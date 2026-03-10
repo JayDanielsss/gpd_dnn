@@ -2025,38 +2025,40 @@ kinematic_set_number = sys.argv[1]
 
 print(f"[INFO]: Now running Kinematic Set #{kinematic_set_number}")
 
-test_dataframe = pd.read_csv(
-    filepath_or_buffer = f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_v{MAJOR_MINOR_NUMBER}.csv"
+this_replica_pseudodata_df = pd.read_csv(
+    filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/main_pseudodata_file_set_{kinematic_set_number}_v{MAJOR_MINOR_NUMBER}.csv"
 )
 
-assert test_dataframe["q_squared"].iloc[0] == test_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
-assert test_dataframe["k"].iloc[0] == test_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+assert this_replica_pseudodata_df["q_squared"].iloc[0] == this_replica_pseudodata_df["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
+assert this_replica_pseudodata_df["k"].iloc[0] == this_replica_pseudodata_df["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
 
 # this is the entire dataset! (i.e. training+validation)
-x_data = test_dataframe[["t", "x_b", "q_squared", "phi"]]
-y_data = test_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
+x_data = this_replica_pseudodata_df[["t", "x_b", "q_squared", "phi"]]
+
+# observables here: sigma(UU) and BSA(0):
+y_data = this_replica_pseudodata_df[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
 
 TOTAL_DATA_SIZE = len(x_data)
 print(f"[INFO]: Total data size is: {TOTAL_DATA_SIZE}")
 
-FIXED_BEAM_ENERGY = test_dataframe["k"].iloc[0]
-FIXED_Q_SQUARED = test_dataframe["q_squared"].iloc[0]
-FIXED_X_BJORKEN = test_dataframe["x_b"].iloc[0]
-FIXED_T_VALUE = test_dataframe["t"].iloc[0]
+FIXED_BEAM_ENERGY = this_replica_pseudodata_df["k"].iloc[0]
+FIXED_Q_SQUARED = this_replica_pseudodata_df["q_squared"].iloc[0]
+FIXED_X_BJORKEN = this_replica_pseudodata_df["x_b"].iloc[0]
+FIXED_T_VALUE = this_replica_pseudodata_df["t"].iloc[0]
 
 print(f"[INFO]: Selected beam energy k = {FIXED_BEAM_ENERGY}")
 print(f"[INFO]: Selected Q^2 = {FIXED_Q_SQUARED}")
 print(f"[INFO]: Selected xB = {FIXED_X_BJORKEN}")
 print(f"[INFO]: Selected t = {FIXED_T_VALUE}")
 
-CFF_REAL_H_KM15 = test_dataframe["Re[H]"].iloc[0]
-CFF_IMAG_H_KM15 = test_dataframe["Im[H]"].iloc[0]
-CFF_REAL_E_KM15 = test_dataframe["Re[E]"].iloc[0]
-CFF_IMAG_E_KM15 = test_dataframe["Im[E]"].iloc[0]
-CFF_REAL_HT_KM15 = test_dataframe["Re[Ht]"].iloc[0]
-CFF_IMAG_HT_KM15 = test_dataframe["Im[Ht]"].iloc[0]
-CFF_REAL_ET_KM15 = test_dataframe["Re[Et]"].iloc[0]
-CFF_IMAG_ET_KM15 = test_dataframe["Im[Et]"].iloc[0]
+CFF_REAL_H_KM15 = this_replica_pseudodata_df["Re[H]"].iloc[0]
+CFF_IMAG_H_KM15 = this_replica_pseudodata_df["Im[H]"].iloc[0]
+CFF_REAL_E_KM15 = this_replica_pseudodata_df["Re[E]"].iloc[0]
+CFF_IMAG_E_KM15 = this_replica_pseudodata_df["Im[E]"].iloc[0]
+CFF_REAL_HT_KM15 = this_replica_pseudodata_df["Re[Ht]"].iloc[0]
+CFF_IMAG_HT_KM15 = this_replica_pseudodata_df["Im[Ht]"].iloc[0]
+CFF_REAL_ET_KM15 = this_replica_pseudodata_df["Re[Et]"].iloc[0]
+CFF_IMAG_ET_KM15 = this_replica_pseudodata_df["Im[Et]"].iloc[0]
 
 CFF_H_KM15 = complex(CFF_REAL_H_KM15, CFF_IMAG_H_KM15)
 CFF_H_TILDE_KM15 = complex(CFF_REAL_HT_KM15, CFF_IMAG_HT_KM15)
@@ -2086,20 +2088,13 @@ km15_cff_string = (
 # Initializing the Phi Array
 ##########################################
 
-STARTING_PHI_VALUE_IN_RADIANS = test_dataframe['phi'].min()
-ENDING_PHI_VALUE_IN_RADIANS = test_dataframe['phi'].max()
-NUMBER_OF_PHI_POINTS = test_dataframe['phi'].nunique()
+STARTING_PHI_VALUE_IN_RADIANS = this_replica_pseudodata_df['phi'].min()
+ENDING_PHI_VALUE_IN_RADIANS = this_replica_pseudodata_df['phi'].max()
+NUMBER_OF_PHI_POINTS = this_replica_pseudodata_df['phi'].nunique()
 
 print(f"[INFO]: Starting value of phi: {STARTING_PHI_VALUE_IN_RADIANS}")
 print(f"[INFO]: Ending value of phi: {ENDING_PHI_VALUE_IN_RADIANS}")
 print(f"[INFO]: Total number of phi: {NUMBER_OF_PHI_POINTS}")
-
-# phi_array_in_degrees = np.linspace(
-#     start = STARTING_PHI_VALUE_IN_DEGREES,
-#     stop = ENDING_PHI_VALUE_IN_DEGREES,
-#     num = NUMBER_OF_PHI_POINTS)
-
-# phi_array_in_radians = [np.radians(degree_value) for degree_value in phi_array_in_degrees]
 
 phi_array_in_radians = np.linspace(
     start = STARTING_PHI_VALUE_IN_RADIANS,
@@ -2110,7 +2105,8 @@ phi_array_in_radians = np.linspace(
 # Making individual replica predictions
 ##########################################
 
-replica_paths = sorted(glob.glob(f"{SCRATCH_PATH}/version_{VERSION_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_*_v{MAJOR_MINOR_NUMBER}.keras"))
+# find replicas:
+replica_paths = sorted(glob.glob(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_*_v{MAJOR_MINOR_NUMBER}.keras"))
 
 replicas = [tf.keras.models.load_model(
     path,
@@ -2118,6 +2114,10 @@ replicas = [tf.keras.models.load_model(
     safe_mode = False) for path in replica_paths]
 
 print(f"Loaded {len(replicas)} replica models.")
+
+if len(replicas) == 0:
+    print(f"[WARN]: No replicas found for this kinematic setting. Exiting...")
+    sys.exit(0)
 
 all_predictions = []
 
@@ -2127,43 +2127,43 @@ for replica_index, replica in enumerate(replicas):
     all_predictions.append(predicted_outputs)
 
     training_history = pd.read_csv(
-        filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_losses_vs_epochs.csv"
+        filepath_or_buffer = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv"
     )
 
-    number_of_epochs_run = 
+    # number_of_epochs_run = len(training_history)
 
-    curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
-    log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
+    # curves_fig, curves_ax = plt.subplots(1, figsize = (8, 8))
+    # log_curves_fig, log_curves_ax = plt.subplots(1, figsize = (8, 8))
 
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.array([np.max(training_loss_data) for number in training_loss_data]), color = "red", label = "Initial Loss Value")
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.zeros(shape = (number_of_epochs_run)), color = "green", label = r"Loss $= 0$")
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), training_loss_data, color = "blue", label = "Training Loss")
-    curves_ax.plot(np.arange(0, number_of_epochs_run, 1), validation_loss_data, color = "purple", label = "Validation Loss")
+    # curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.array([np.max(training_loss_data) for number in training_loss_data]), color = "red", label = "Initial Loss Value")
+    # curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.zeros(shape = (number_of_epochs_run)), color = "green", label = r"Loss $= 0$")
+    # curves_ax.plot(np.arange(0, number_of_epochs_run, 1), training_loss_data, color = "blue", label = "Training Loss")
+    # curves_ax.plot(np.arange(0, number_of_epochs_run, 1), validation_loss_data, color = "purple", label = "Validation Loss")
 
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.array([np.max(training_loss_data) for number in training_loss_data])), color = "red", label = "Initial Loss Value")
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.zeros(shape = (number_of_epochs_run)) + 1e-20), color = "green", label = r"Loss $= 0$")
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(training_loss_data), color = "blue", label = "Log Training Loss")
-    log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(validation_loss_data), color = "purple", label = "Log Validation Loss")
+    # log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.array([np.max(training_loss_data) for number in training_loss_data])), color = "red", label = "Initial Loss Value")
+    # log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(np.zeros(shape = (number_of_epochs_run)) + 1e-20), color = "green", label = r"Loss $= 0$")
+    # log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(training_loss_data), color = "blue", label = "Log Training Loss")
+    # log_curves_ax.plot(np.arange(0, number_of_epochs_run, 1), np.log(validation_loss_data), color = "purple", label = "Log Validation Loss")
 
-    curves_ax.legend(fontsize = 15)
-    log_curves_ax.legend(fontsize = 15)
+    # curves_ax.legend(fontsize = 15)
+    # log_curves_ax.legend(fontsize = 15)
 
-    curves_ax.set_xlabel("Epoch", fontsize = 15)
-    curves_ax.set_ylabel("MSE", fontsize = 15)
-    curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+    # curves_ax.set_xlabel("Epoch", fontsize = 15)
+    # curves_ax.set_ylabel("MSE", fontsize = 15)
+    # curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
 
-    log_curves_ax.set_xlabel("Epoch", fontsize = 15)
-    log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
-    log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
+    # log_curves_ax.set_xlabel("Epoch", fontsize = 15)
+    # log_curves_ax.set_ylabel("Log MSE Loss", fontsize = 15)
+    # log_curves_ax.set_title(f"Replica {replica_number} Learning Curves\n(Eval. Loss $= {testing_loss:.3g}$, Eval. Accuracy $= {testing_accuracy:.3g})$", fontsize = 15)
 
-    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-    curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+    # curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    # curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
 
-    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-    log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
+    # log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
+    # log_curves_fig.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_lc_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
 
-    plt.close(curves_fig)
-    plt.close(log_curves_fig)
+    # plt.close(curves_fig)
+    # plt.close(log_curves_fig)
 
 all_predictions = np.array(all_predictions)
 
@@ -2215,615 +2215,20 @@ for index, _ in enumerate(all_predictions):
 replicas_cross_predictions = np.array(replicas_cross_predictions)
 replicas_bsa_predictions = np.array(replicas_bsa_predictions)
 
-##########################################
-# Making replica ensemble predictions for
-# cross section
-##########################################
+# save npz with DNN training information:
+np.savez(
+    file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/replica_average_predictions_set_{kinematic_set_number}.npz",
+    cross_section_predictions = replicas_cross_predictions,
+    bsa_predictions = replicas_bsa_predictions
+    )
 
-mean_xs = np.mean(replicas_cross_predictions, axis = 0)
-std_dev_xs = np.std(replicas_cross_predictions, axis = 0)
-
-xs_mean = np.mean(replicas_cross_predictions, axis = 0)
-xs_min = np.min(replicas_cross_predictions, axis = 0)
-xs_max = np.max(replicas_cross_predictions, axis = 0)
-xs_q1 = np.percentile(replicas_cross_predictions, 25, axis = 0)
-xs_q3 = np.percentile(replicas_cross_predictions, 75, axis = 0)
-
-xs_percentile_10 = np.percentile(replicas_cross_predictions, 10, axis = 0)
-xs_percentile_20 = np.percentile(replicas_cross_predictions, 20, axis = 0)
-xs_percentile_30 = np.percentile(replicas_cross_predictions, 30, axis = 0)
-xs_percentile_40 = np.percentile(replicas_cross_predictions, 40, axis = 0)
-xs_median = np.percentile(replicas_cross_predictions, 50, axis = 0)
-xs_percentile_60 = np.percentile(replicas_cross_predictions, 60, axis = 0)
-xs_percentile_70 = np.percentile(replicas_cross_predictions, 70, axis = 0)
-xs_percentile_80 = np.percentile(replicas_cross_predictions, 80, axis = 0)
-xs_percentile_90 = np.percentile(replicas_cross_predictions, 90, axis = 0)
-
-mean_bsa = np.mean(replicas_bsa_predictions, axis = 0)
-std_dev_bsa = np.std(replicas_bsa_predictions, axis = 0)
-
-bsa_mean = np.mean(replicas_bsa_predictions, axis = 0)
-bsa_min = np.min(replicas_bsa_predictions, axis = 0)
-bsa_max = np.max(replicas_bsa_predictions, axis = 0)
-bsa_q1 = np.percentile(replicas_bsa_predictions, 25, axis = 0)
-bsa_q3 = np.percentile(replicas_bsa_predictions, 75, axis = 0)
-
-bsa_percentile_10 = np.percentile(replicas_bsa_predictions, 10, axis = 0)
-bsa_percentile_20 = np.percentile(replicas_bsa_predictions, 20, axis = 0)
-bsa_percentile_30 = np.percentile(replicas_bsa_predictions, 30, axis = 0)
-bsa_percentile_40 = np.percentile(replicas_bsa_predictions, 40, axis = 0)
-bsa_median = np.percentile(replicas_bsa_predictions, 50, axis = 0)
-bsa_percentile_60 = np.percentile(replicas_bsa_predictions, 60, axis = 0)
-bsa_percentile_70 = np.percentile(replicas_bsa_predictions, 70, axis = 0)
-bsa_percentile_80 = np.percentile(replicas_bsa_predictions, 80, axis = 0)
-bsa_percentile_90 = np.percentile(replicas_bsa_predictions, 90, axis = 0)
-
-cross_section_km15 = DifferentialCrossSection(
-    configuration = {
-        "kinematics": BKM10Inputs(
-            lab_kinematics_k = FIXED_BEAM_ENERGY,
-            squared_Q_momentum_transfer = FIXED_Q_SQUARED,
-            x_Bjorken = FIXED_X_BJORKEN,
-            squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
-        "cff_inputs": CFFInputs(
-            compton_form_factor_h = CFF_H_KM15,
-            compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
-            compton_form_factor_e = CFF_E_KM15,
-            compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-        "target_polarization": 0.0,
-        "lepton_beam_polarization": 0.0,
-        "using_ww": True
-    },
-    verbose = False,
-    debugging = False)
-
-bkm10_cross_sections_km15 = cross_section_km15.compute_cross_section(
-    phi_array_in_radians,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
-
-bkm10_bsa_km15 = cross_section_km15.compute_bsa(
-    phi_array_in_radians, 
-    target_polarization = 0.0).real
-
-##########################################
-# Figures for cross-section predictions:
-##########################################
-fig2, ax2 = plt.subplots(1, figsize = (7, 7))
-
-ax2.scatter(
-    phi_array_in_radians, bkm10_cross_sections_km15,
-    s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-
-ax2.plot(
-    phi_array_in_radians,
-    mean_xs,
-    label = r'Replica Average',
-    color = "blue",
-    linewidth = 0.5,
-    linestyle = 'dashed')
-
-ax2.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_max,
-    y2 = xs_min,
-    label = r'Min/Max Bound',
-    color = "lightgray",
-    alpha = 0.2)
-
-ax2.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_90,
-    y2 = xs_percentile_10,
-    label = r'10/90 \% Bound',
-    color = "gray",
-    alpha = 0.25)
-
-ax2.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_80,
-    y2 = xs_percentile_20,
-    label = r'20/80 \% Bound',
-    color = "gray",
-    alpha = 0.3)
-
-ax2.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_70,
-    y2 = xs_percentile_30,
-    label = r'30/70 \% Bound',
-    color = "gray",
-    alpha = 0.35)
-
-ax2.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_60,
-    y2 = xs_percentile_40,
-    label = r'40/60 \% Bound',
-    color = "gray",
-    alpha = 0.4)
-
-ax2.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
-ax2.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
-ax2.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-fig2.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_xsec_vs_phi_v{MAJOR_MINOR_NUMBER}.png")
-fig2.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_xsec_vs_phi_v{MAJOR_MINOR_NUMBER}.eps")
-plt.show()
-plt.close(fig2)
-
-##########################################
-# Figures for BSA predictions:
-##########################################
-fig3, ax3 = plt.subplots(1, figsize = (7, 7))
-
-ax3.scatter(
-    phi_array_in_radians, bkm10_bsa_km15,
-    s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-
-ax3.plot(
-    phi_array_in_radians,
-    mean_bsa,
-    label = r'Replica Average',
-    color = "blue",
-    linewidth = 0.5,
-    linestyle = 'dashed')
-
-ax3.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_max,
-    y2 = bsa_min,
-    label = r'Min/Max Bound',
-    color = "lightgray",
-    alpha = 0.2)
-
-ax3.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_90,
-    y2 = bsa_percentile_10,
-    label = r'10/90 \% Bound',
-    color = "gray",
-    alpha = 0.25)
-
-ax3.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_80,
-    y2 = bsa_percentile_20,
-    label = r'20/80 \% Bound',
-    color = "gray",
-    alpha = 0.3)
-
-ax3.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_70,
-    y2 = bsa_percentile_30,
-    label = r'30/70 \% Bound',
-    color = "gray",
-    alpha = 0.35)
-
-ax3.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_60,
-    y2 = bsa_percentile_40,
-    label = r'40/60 \% Bound',
-    color = "gray",
-    alpha = 0.4)
-
-ax3.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
-ax3.set_ylabel(r"BSA", fontsize = 16)
-ax3.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-fig3.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_bsa_vs_phi_v{MAJOR_MINOR_NUMBER}.png")
-fig3.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/dnn_bsa_vs_phi_v{MAJOR_MINOR_NUMBER}.eps")
-plt.show()
-plt.close(fig3)
-
-##########################################
-# Making replica ensemble predictions for
-# BSA
-##########################################
-
-mean_bsa = np.mean(replicas_bsa_predictions, axis = 0)
-std_dev_bsa = np.std(replicas_bsa_predictions, axis = 0)
-
-bsa_mean = np.mean(replicas_bsa_predictions, axis = 0)
-bsa_min = np.min(replicas_bsa_predictions, axis = 0)
-bsa_max = np.max(replicas_bsa_predictions, axis = 0)
-bsa_q1 = np.percentile(replicas_bsa_predictions, 25, axis = 0)
-bsa_q3 = np.percentile(replicas_bsa_predictions, 75, axis = 0)
-
-bsa_percentile_10 = np.percentile(replicas_bsa_predictions, 10, axis = 0)
-bsa_percentile_20 = np.percentile(replicas_bsa_predictions, 20, axis = 0)
-bsa_percentile_30 = np.percentile(replicas_bsa_predictions, 30, axis = 0)
-bsa_percentile_40 = np.percentile(replicas_bsa_predictions, 40, axis = 0)
-bsa_median = np.percentile(replicas_bsa_predictions, 50, axis = 0)
-bsa_percentile_60 = np.percentile(replicas_bsa_predictions, 60, axis = 0)
-bsa_percentile_70 = np.percentile(replicas_bsa_predictions, 70, axis = 0)
-bsa_percentile_80 = np.percentile(replicas_bsa_predictions, 80, axis = 0)
-bsa_percentile_90 = np.percentile(replicas_bsa_predictions, 90, axis = 0)
-
-##########################################
-# Figures for CFF Predictions
-##########################################
-
-cff_h_real_pred_per_replica = np.mean(all_predictions[:, :, 0], axis = 1)
-cff_h_imag_pred_per_replica = np.mean(all_predictions[:, :, 1], axis = 1)
-cff_h_real_mean, cff_h_real_stddev = norm.fit(cff_h_real_pred_per_replica)
-cff_h_imag_mean, cff_h_imag_stddev = norm.fit(cff_h_imag_pred_per_replica)
-
-print(f"[NOTE]: Re[H] mean of {cff_h_real_mean} and stdddev of {cff_h_real_stddev}")
-print(f"[NOTE]: Im[H] mean of {cff_h_imag_mean} and stdddev of {cff_h_imag_stddev}")
-
-burner_x_values_cff_h_real = np.linspace(
-    cff_h_real_mean - 4.*cff_h_real_stddev,
-    cff_h_real_mean + 4.*cff_h_real_stddev,
-    200)
-
-fig4, ax4 = plt.subplots(1, 1, figsize = (9, 7))
-ax4.hist(cff_h_real_pred_per_replica, bins = 30, alpha = 0.6, color = 'skyblue', edgecolor = 'black')
-ax4.plot(
-    burner_x_values_cff_h_real, norm.pdf(burner_x_values_cff_h_real, cff_h_real_mean, cff_h_real_stddev), 
-    color = "red", linestyle = "--", label = fr"Gaussian Fit: $\mu = {cff_h_real_mean:.3f}$, $\sigma = {cff_h_real_stddev:.3f}$")
-ax4.axvline(CFF_REAL_H_KM15, color = "green", linestyle = "-", linewidth = 2., label = f"KM15: {CFF_REAL_H_KM15:.3f}")
-ax4.set_ylabel("Frequency", rotation = 90.)
-ax4.set_xlabel(r"Re$[\mathcal{H}]$")
-ax4.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-ax4.legend()
-fig4.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.png")
-fig4.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_real_fits_v{MAJOR_MINOR_NUMBER}.eps")
-plt.show()
-plt.close(fig4)
-
-burner_x_values_cff_h_imag = np.linspace(
-    cff_h_imag_mean - 4.*cff_h_imag_stddev,
-    cff_h_imag_mean + 4.*cff_h_imag_stddev,
-    200)
-
-fig5, ax5 = plt.subplots(1, 1, figsize = (9, 7))
-ax5.hist(cff_h_imag_pred_per_replica, bins = 30, alpha = 0.6, color = 'skyblue', edgecolor = 'black')
-ax5.plot(
-    burner_x_values_cff_h_imag, norm.pdf(burner_x_values_cff_h_imag, cff_h_imag_mean, cff_h_imag_stddev), 
-    color = "red", linestyle = "--", label = fr"Gaussian Fit: $\mu = {cff_h_imag_mean:.3f}$, $\sigma = {cff_h_imag_stddev:.3f}$")
-ax5.axvline(CFF_IMAG_H_KM15, color = "green", linestyle = "-", linewidth = 2., label = f"KM15: {CFF_IMAG_H_KM15:.3f}")
-ax5.set_ylabel("Frequency", rotation = 90.)
-ax5.set_xlabel(r"Im$[\mathcal{H}]$")
-ax5.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-ax5.legend()
-fig5.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_imag_fits_v{MAJOR_MINOR_NUMBER}.png")
-fig5.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_imag_fits_v{MAJOR_MINOR_NUMBER}.eps")
-plt.show()
-plt.close(fig5)
-
-tf.keras.backend.clear_session()
-
-predicted_h_bkm10 = DifferentialCrossSection(
-    configuration = {
-        "kinematics": BKM10Inputs(
-            lab_kinematics_k = FIXED_BEAM_ENERGY,
-            squared_Q_momentum_transfer = FIXED_Q_SQUARED,
-            x_Bjorken = FIXED_X_BJORKEN,
-            squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
-        "cff_inputs": CFFInputs(
-            compton_form_factor_h = complex(cff_h_real_mean, cff_h_imag_mean),
-            compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
-            compton_form_factor_e = CFF_E_KM15,
-            compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-        "target_polarization": 0.0,
-        "lepton_beam_polarization": 0.0,
-        "using_ww": True
-    },
-    verbose = False,
-    debugging = False)
-
-bkm10_cross_sections_dnn = predicted_h_bkm10.compute_cross_section(
-    phi_array_in_radians,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
-
-bkm10_bsa_dnn = predicted_h_bkm10.compute_bsa(
-    phi_array_in_radians, 
-    target_polarization = 0.0).real
-
-post_cff_fit_xsec_figure, post_cff_fit_xsec_axis = plt.subplots(1, figsize = (7, 7))
-
-post_cff_fit_xsec_axis.scatter(
-    phi_array_in_radians, bkm10_cross_sections_km15,
-    s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-
-# post_cff_fit_xsec_axis.scatter(
-#     phi_array_in_radians, bkm10_cross_sections_dnn,
-#     s = 4., label = "BKM10 Prediction with DNN CFFs", color = "red")
-
-post_cff_fit_xsec_axis.plot(
-    phi_array_in_radians,
-    mean_xs,
-    label = r'Replica Average',
-    color = "blue",
-    linewidth = 0.5,
-    linestyle = 'dashed')
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_max,
-    y2 = xs_min,
-    label = r'Min/Max Bound',
-    color = "lightgray",
-    alpha = 0.2)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_90,
-    y2 = xs_percentile_10,
-    label = r'10/90 \% Bound',
-    color = "gray",
-    alpha = 0.25)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_80,
-    y2 = xs_percentile_20,
-    label = r'20/80 \% Bound',
-    color = "gray",
-    alpha = 0.3)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_70,
-    y2 = xs_percentile_30,
-    label = r'30/70 \% Bound',
-    color = "gray",
-    alpha = 0.35)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_60,
-    y2 = xs_percentile_40,
-    label = r'40/60 \% Bound',
-    color = "gray",
-    alpha = 0.4)
-post_cff_fit_xsec_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
-post_cff_fit_xsec_axis.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
-post_cff_fit_xsec_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(post_cff_fit_xsec_figure)
-
-post_cff_fit_bsa_figure, post_cff_fit_bsa_axis = plt.subplots(1, figsize = (7, 7))  
-post_cff_fit_bsa_axis.scatter(
-    phi_array_in_radians, bkm10_bsa_km15,
-    s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-# post_cff_fit_bsa_axis.scatter(
-#     phi_array_in_radians, bkm10_bsa_dnn,
-#     s = 4., label = "BKM10 Prediction with DNN CFFs", color = "red")
-post_cff_fit_bsa_axis.plot(
-    phi_array_in_radians,
-    mean_bsa,
-    label = r'Replica Average',
-    color = "blue",
-    linewidth = 0.5,
-    linestyle = 'dashed')
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_max,
-    y2 = bsa_min,
-    label = r'Min/Max Bound',
-    color = "lightgray",
-    alpha = 0.2)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_90,
-    y2 = bsa_percentile_10,
-    label = r'10/90 \% Bound',
-    color = "gray",
-    alpha = 0.25)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_80,
-    y2 = bsa_percentile_20,
-    label = r'20/80 \% Bound',
-    color = "gray",
-    alpha = 0.3)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_70,
-    y2 = bsa_percentile_30,
-    label = r'30/70 \% Bound',
-    color = "gray",
-    alpha = 0.35)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_60,
-    y2 = bsa_percentile_40,
-    label = r'40/60 \% Bound',
-    color = "gray",
-    alpha = 0.4)
-post_cff_fit_bsa_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
-post_cff_fit_bsa_axis.set_ylabel(r"BSA", fontsize = 16)
-post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(post_cff_fit_bsa_figure)
-
-predicted_h_bkm10 = DifferentialCrossSection(
-    configuration = {
-        "kinematics": BKM10Inputs(
-            lab_kinematics_k = FIXED_BEAM_ENERGY,
-            squared_Q_momentum_transfer = FIXED_Q_SQUARED,
-            x_Bjorken = FIXED_X_BJORKEN,
-            squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
-        "cff_inputs": CFFInputs(
-            compton_form_factor_h = complex(cff_h_real_mean, cff_h_imag_mean),
-            compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
-            compton_form_factor_e = CFF_E_KM15,
-            compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-        "target_polarization": 0.0,
-        "lepton_beam_polarization": 0.0,
-        "using_ww": True
-    },
-    verbose = False,
-    debugging = False)
-
-bkm10_cross_sections_dnn = predicted_h_bkm10.compute_cross_section(
-    phi_array_in_radians,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
-
-bkm10_bsa_dnn = predicted_h_bkm10.compute_bsa(
-    phi_array_in_radians, 
-    target_polarization = 0.0).real
-
-post_cff_fit_xsec_figure, post_cff_fit_xsec_axis = plt.subplots(1, figsize = (7, 7))
-post_cff_fit_xsec_axis.scatter(
-    phi_array_in_radians, bkm10_cross_sections_km15,
-    s = 1., label = "BKM10 Prediction with KM15 CFFs", color = "blue", alpha = 0.8)
-# post_cff_fit_xsec_axis.scatter(
-#     phi_array_in_radians, bkm10_cross_sections_dnn,
-#     s = 1., label = "BKM10 Prediction with DNN CFFs", color = "red", alpha = 0.8)
-post_cff_fit_xsec_axis.plot(
-    phi_array_in_radians,
-    mean_xs,
-    label = r'Replica Average',
-    color = "blue",
-    linewidth = 0.5,
-    linestyle = 'dashed')
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_max,
-    y2 = xs_min,
-    label = r'Min/Max Bound',
-    color = "lightgray",
-    alpha = 0.2)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_90,
-    y2 = xs_percentile_10,
-    label = r'10/90 \% Bound',
-    color = "gray",
-    alpha = 0.25)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_80,
-    y2 = xs_percentile_20,
-    label = r'20/80 \% Bound',
-    color = "gray",
-    alpha = 0.3)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_70,
-    y2 = xs_percentile_30,
-    label = r'30/70 \% Bound',
-    color = "gray",
-    alpha = 0.35)
-post_cff_fit_xsec_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = xs_percentile_60,
-    y2 = xs_percentile_40,
-    label = r'40/60 \% Bound',
-    color = "gray",
-    alpha = 0.4)
-post_cff_fit_xsec_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
-post_cff_fit_xsec_axis.set_ylabel(r"$d^{4}\sigma$ [nb / GeV$^{4}$]", fontsize = 16)
-post_cff_fit_xsec_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_xsec_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cross_section_comparison_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(post_cff_fit_xsec_figure)
-
-post_cff_fit_bsa_figure, post_cff_fit_bsa_axis = plt.subplots(1, figsize = (7, 7))
-post_cff_fit_bsa_axis.scatter(
-    phi_array_in_radians, bkm10_bsa_km15,
-    s = 1., label = "BKM10 Prediction with KM15 CFFs", color = "blue", alpha = 0.9)
-# post_cff_fit_bsa_axis.scatter(
-#     phi_array_in_radians, bkm10_bsa_dnn,
-#     s = 1., label = "BKM10 Prediction with DNN CFFs", color = "red", alpha = 0.9)
-post_cff_fit_bsa_axis.plot(
-    phi_array_in_radians,
-    mean_bsa,
-    label = r'Replica Average',
-    color = "blue",
-    linewidth = 0.5,
-    linestyle = 'dashed')
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_max,
-    y2 = bsa_min,
-    label = r'Min/Max Bound',
-    color = "lightgray",
-    alpha = 0.2)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_90,
-    y2 = bsa_percentile_10,
-    label = r'10/90 \% Bound',
-    color = "gray",
-    alpha = 0.25)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_80,
-    y2 = bsa_percentile_20,
-    label = r'20/80 \% Bound',
-    color = "gray",
-    alpha = 0.3)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_70,
-    y2 = bsa_percentile_30,
-    label = r'30/70 \% Bound',
-    color = "gray",
-    alpha = 0.35)
-post_cff_fit_bsa_axis.fill_between(
-    x = phi_array_in_radians,
-    y1 = bsa_percentile_60,
-    y2 = bsa_percentile_40,
-    label = r'40/60 \% Bound',
-    color = "gray",
-    alpha = 0.4)
-post_cff_fit_bsa_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16)
-post_cff_fit_bsa_axis.set_ylabel(r"BSA", fontsize = 16)
-post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.png")
-post_cff_fit_bsa_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/bsa_comparison_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(post_cff_fit_bsa_figure)
-
-cff_h_correlation_figure, cff_h_correlation_axis = plt.subplots(1, figsize = (7, 7))
-
-cff_h_correlation_axis.scatter(
-    cff_h_real_pred_per_replica, cff_h_imag_pred_per_replica,
-    s = 4., label = "BKM10 Prediction with KM15 CFFs", color = "blue")
-
-post_cff_fit_bsa_axis.set_xlabel(r"Rm$[\mathcal{H}]$", fontsize = 16)
-post_cff_fit_bsa_axis.set_ylabel(r"Im$[\mathcal{H}]$", fontsize = 16)
-post_cff_fit_bsa_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-plt.legend()
-cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.png")
-cff_h_correlation_figure.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_correlation_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(cff_h_correlation_figure)
-
-cff_corner_plot_data = np.vstack([cff_h_real_pred_per_replica, cff_h_imag_pred_per_replica]).T
-
-cff_corner_plot = corner.corner(
-    cff_corner_plot_data.astype(float),
-    labels = [
-        r"Re$[\mathcal{H}]$",
-        r"Im$[\mathcal{H}]$",
-        ],
-    plot_datapoints = True,
-    show_titles = True,
-    title_kwargs = {"fontsize": 14},
-    label_kwargs = {"fontsize": 14}, 
-    hist_kwargs = {
-        'fc': 'skyblue',
-        'ec': 'black',
-        'histtype': 'bar',
-        'lw': '0.9',
-        },
-    data_kwargs = {
-        "alpha": 0.5, 
-        "label": "BKM10 Prediction with KM15 CFFs"
-        },
-    title_fmt = ".3g",
-    figsize = (9, 9)
-)
-
-cff_corner_plot.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.png")
-cff_corner_plot.savefig(f"{SCRATCH_PATH}/kinematic_set_{kinematic_set_number}/version_{VERSION_NUMBER}/plots/cff_h_corner_plot_{MAJOR_MINOR_NUMBER}.eps")
+# make DF with DNN training information
+pd.DataFrame(
+    {
+        'cross_section_predictions': replicas_cross_predictions,
+        'bsa_predictions': replicas_bsa_predictions
+    }).to_csv(
+        f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/replica_average_predictions.csv", 
+    index = False)
 
 print(f"[INFO]: End of script reached!")
