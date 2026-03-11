@@ -61,6 +61,7 @@ print(f"[INFO]: Replica DNN has {_NUMBER_NODES_HIDDEN_4} nodes in 4th hidden lay
 ##########################################
 
 import sys
+import gc
 
 import pandas as pd
 import numpy as np
@@ -1192,20 +1193,6 @@ def i_c_lp_v_0p_2(
     c_2_zero_plus_V_LP = prefactor * root_combination_of_y_and_epsilon * (1. - xb ) * t / q_sq
     return c_2_zero_plus_V_LP
 
-def i_c_lp_v_0p_2(
-    lep_helicity: float,
-    target_polar: float,
-    q_sq: float, 
-    xb: float, 
-    t: float,
-    ep: float,
-    y: float, 
-    shorthand_k: float) -> float:
-    root_combination_of_y_and_epsilon = tf.sqrt(1. - y - (y**2 * ep**2 / 4.))
-    prefactor = 8. * tf.sqrt(2.) * lep_helicity * target_polar * shorthand_k * y / (1. + ep**2)**2
-    c_2_zero_plus_V_LP = prefactor * root_combination_of_y_and_epsilon * (1. - xb ) * t / q_sq
-    return c_2_zero_plus_V_LP
-
 def i_c_lp_a_0p_2(
     lep_helicity: float,
     target_polar: float,
@@ -2098,11 +2085,7 @@ def cff_h_model():
 
     model.compile(
         optimizer = tf.keras.optimizers.Adam(), 
-        loss = SimultaneousObservablesLoss(),
-        metrics = [
-            "mae", 
-            "mse"
-            ])
+        loss = SimultaneousObservablesLoss())
     
     return model
 
@@ -2257,40 +2240,43 @@ dnn_model_history = dnn_model.fit(
         )
     ],
     batch_size = _BATCH_SIZE,
-    verbose = 1
+    verbose = 0
     )
 
 number_of_epochs_run = len(dnn_model_history.epoch)
-print(f"[NOTE]: The model ran for {number_of_epochs_run} epochs before early stopping.")
+print(f"The model ran for {number_of_epochs_run} epochs before early stopping.")
 
-dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
+dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
 
 training_loss_data = dnn_model_history.history["loss"]
 validation_loss_data = dnn_model_history.history["val_loss"]
 
-testing_loss, testing_accuracy = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
-print(f"Test Loss for Replica {replica_number}: {testing_loss}")
-print(f"Test Accuracy for Replica {replica_number}: {testing_accuracy}")
+dnn_evaluation_statistics = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
+print(f"Test Loss for Replica {replica_number}: {dnn_evaluation_statistics}")
+
+# make DF with testing metrics:
+pd.DataFrame({
+    'testing_loss': [dnn_evaluation_statistics], # https://stackoverflow.com/a/17840195 -> for why we need to cast it into a list!
+}).to_csv(
+    f"./local/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_loss_data.csv", 
+    index = False)
 
 # save npz with DNN training information:
 np.savez(
-    file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.npz",
+    file = f"./local/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_losses_vs_epochs.npz",
     training_loss = training_loss_data,
     validation_loss = validation_loss_data
     )
+
 # make DF with DNN training information
 pd.DataFrame(dnn_model_history.history).to_csv(
-    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
-    index = False)
-# make DF with testing metrics:
-pd.DataFrame({
-    'testing_loss': testing_loss,
-    'testing_accuracy': testing_accuracy
-}).to_csv(
-    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_loss_data.csv", 
+    f"./local/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
     index = False)
 
+# cleanup
 tf.keras.backend.clear_session()
+del dnn_model
+gc.collect()
 
 with open(file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/learning_curves/log_v{MAJOR_MINOR_NUMBER}.txt", mode = "w", buffering = 1) as logfile:
     logfile.write(f"[INFO]: #{kinematic_set_number}: Bin k = {FIXED_BEAM_ENERGY}, Q^2 = {FIXED_Q_SQUARED}, xb = {FIXED_X_BJORKEN}, t = {FIXED_T_VALUE}\n")
