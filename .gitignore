@@ -186,3 +186,6 @@ cython_debug/
 # NumPy Array files:
 *.npz
 *.npy
+
+# .txt files:
+*.txt
