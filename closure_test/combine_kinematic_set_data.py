@@ -4,10 +4,10 @@
 # pseudodata for training DNN models down
 # the line.
 # Created: 20260308
-# Last changed: 20260309
+# Last changed: 20260401
 ##########################################
 
-print(f"[INFO]: Script began running!")
+print("[INFO]: Script began running!")
 
 ##########################################
 # Importing Python Libraries
@@ -17,7 +17,7 @@ import pandas as pd
 import glob
 import os
 
-print(f"[INFO]: Libraries imported!")
+print("[INFO]: Libraries imported!")
 
 ##########################################
 # [IMPORTANT]: Static quantities parametrizing
@@ -43,15 +43,20 @@ file_pattern = os.path.join(
 
 # use glob for the asterisk pattern above:
 kinematic_set_files = glob.glob(file_pattern)
-kinematic_set_pseudodata_list = [pd.read_csv(kinematic_set_pseudodata) for kinematic_set_pseudodata in kinematic_set_files]
+
+kinematic_set_pseudodata_list = [
+    pd.read_csv(kinematic_set_pseudodata) for kinematic_set_pseudodata in kinematic_set_files
+    ]
 
 combined_df = pd.concat(kinematic_set_pseudodata_list, ignore_index = True)
+combined_df.drop(columns = ['Unnamed: 0'], errors = 'ignore')
 
 output_directory = os.path.join(SCRATCH_PATH,f"version_{MAJOR_MINOR_NUMBER}")
-total_pseudodata_file = os.path.join(output_directory, f"combined_pseudodata_v{MAJOR_MINOR_NUMBER}.csv")
+total_pseudodata_file = os.path.join(
+    output_directory,
+    f"combined_pseudodata_v{MAJOR_MINOR_NUMBER}.csv")
 combined_df.to_csv(total_pseudodata_file, index = False)
 
 print(f"[INFO]: Combined {len(kinematic_set_pseudodata_list)} files into {total_pseudodata_file}")
 
-print(f"[INFO]: End of script reached!")
-
+print("[INFO]: End of script reached!")
