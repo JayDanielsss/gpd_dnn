@@ -47,7 +47,7 @@ _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE = 0.8 # of the above 80% temporary, 80
 #################################################################################
 
 with open(
-    f"./pseudodata_slurm_logs/version_v{MAJOR_MINOR_NUMBER}/valid_kinematic_sets_v{MAJOR_MINOR_NUMBER}.txt", 
+    f"./pseudodata_slurm_logs/version_{MAJOR_MINOR_NUMBER}/valid_kinematic_sets_v{MAJOR_MINOR_NUMBER}.txt", 
     "r",
     encoding = "utf-8") as good_kinematic_sets_file:
     # This creates a list like [2, 9, 15, ...]
