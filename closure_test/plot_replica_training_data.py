@@ -1,93 +1,197 @@
 ##########################################
-# Finding Observable Values Labeled by
-# Training/Validation/Testing
+# FILE INFORMATION:
+# Purpose: makes plots corresponding to replica
+# DNN training/validation/testing data
+# Created: 20260402
+# Last changed: 20260402
 ##########################################
 
-# a numpy array of all the corresponding phi-points
-# if you do NOT UNDERSTAND why the code below selects the phi-values that are used in training, please run each piece interactively
-x_training_phi_points = np.array(x_training["phi"])
-x_validation_phi_points = np.array(x_validation["phi"])
-x_testing_phi_points = np.array(x_testing["phi"])
+print("[INFO]: Script began running!")
 
-xsecs = DifferentialCrossSection(
-    configuration = {
-        "kinematics": BKM10Inputs(
-            lab_kinematics_k = FIXED_BEAM_ENERGY,
-            squared_Q_momentum_transfer = FIXED_Q_SQUARED,
-            x_Bjorken = FIXED_X_BJORKEN,
-            squared_hadronic_momentum_transfer_t = FIXED_T_VALUE),
-        "cff_inputs": CFFInputs(
-            compton_form_factor_h = CFF_H_KM15,
-            compton_form_factor_h_tilde = CFF_H_TILDE_KM15,
-            compton_form_factor_e = CFF_E_KM15,
-            compton_form_factor_e_tilde = CFF_E_TILDE_KM15),
-        "using_ww": True
-    },
-    verbose = False,
-    debugging = False)
+#################################################################################
+# Libraries
+#################################################################################
 
-x_training_bkm10_xsec = xsecs.compute_cross_section(
-    x_training_phi_points,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
+import glob
+import datetime
 
-x_validation_bkm10_xsec = xsecs.compute_cross_section(
-    x_validation_phi_points,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
 
-x_testing_bkm10_xsec = xsecs.compute_cross_section(
-    x_testing_phi_points,
-    lepton_helicity = 0.0,
-    target_polarization = 0.0).real
+##########################################
+# Matplotlib Plotting Customizability
+##########################################
 
-x_training_bkm10_bsa = xsecs.compute_bsa(
-    x_training_phi_points,
-    target_polarization = 0.0).real
+plt.rcParams.update({
+    "text.usetex": True, "font.family": "serif",
+})
+plt.rcParams['xtick.direction'] = 'in'
+plt.rcParams['xtick.major.size'] = 8.5
+plt.rcParams['xtick.major.width'] = 0.5
+plt.rcParams['xtick.minor.size'] = 2.5
+plt.rcParams['xtick.minor.width'] = 0.5
+plt.rcParams['xtick.minor.visible'] = True
+plt.rcParams['xtick.top'] = True
+plt.rcParams['ytick.direction'] = 'in'
+plt.rcParams['ytick.major.size'] = 8.5
+plt.rcParams['ytick.major.width'] = 0.5
+plt.rcParams['ytick.minor.size'] = 2.5
+plt.rcParams['ytick.minor.width'] = 0.5
+plt.rcParams['ytick.minor.visible'] = True
+plt.rcParams['ytick.right'] = True
+plt.rcParams['savefig.dpi'] = 300
 
-x_validation_bkm10_bsa = xsecs.compute_bsa(
-    x_validation_phi_points,
-    target_polarization = 0.0).real
+#################################################################################
+# Version numbers!
+#################################################################################
 
-x_testing_bkm10_bsa = xsecs.compute_bsa(
-    x_testing_phi_points,
-    target_polarization = 0.0).real
+VERSION_NUMBER = 1
+MINOR_NUMBER = 3
+MAJOR_MINOR_NUMBER = f"{VERSION_NUMBER}_{MINOR_NUMBER}"
 
-title_string = (
-    rf"$Q^2 = {FIXED_Q_SQUARED:.2f}$ GeV$^2$, "
-    rf"$x_B = {FIXED_X_BJORKEN:.2f}$, "
-    rf"$t = {FIXED_T_VALUE:.2f}$ ,"
-    rf"$k = {FIXED_BEAM_ENERGY:.2f}$ GeV"
-)
-km15_cff_string = (
-    rf"$\mathcal{{H}} = {CFF_H_KM15:.3f}$, "
-    rf"$\mathcal{{E}} = {CFF_E_KM15:.3f}$, "
-    rf"$\widetilde{{\mathcal{{H}}}} = {CFF_H_TILDE_KM15:.3f}$, "
-    rf"$\widetilde{{\mathcal{{E}}}} = {CFF_E_TILDE_KM15:.3f}$ "
-)
+print(f"[INFO]: We are saving figures and data with the following appendage: {MAJOR_MINOR_NUMBER}")
 
-data_vis_figure, data_vis_axis = plt.subplots(1, 1, figsize = (8, 7))
-data_vis_axis.scatter(x_training_phi_points, x_training_bkm10_xsec, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
-data_vis_axis.scatter(x_validation_phi_points, x_validation_bkm10_xsec, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
-data_vis_axis.scatter(x_testing_phi_points, x_testing_bkm10_xsec, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
-data_vis_axis.legend(fontsize = 14.)
-data_vis_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
-data_vis_axis.set_ylabel(r"$d^{4}\sigma$", fontsize = 16.)
-data_vis_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-data_vis_axis.grid(visible = True)
-data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-data_vis_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_xsec_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(data_vis_figure)
+#################################################################################
+# Read the textfile:
+#################################################################################
 
-bsa_train_test_split_figure, bsa_train_test_split_axis = plt.subplots(1, 1, figsize = (8, 7))
-bsa_train_test_split_axis.scatter(x_training_phi_points, x_training_bkm10_bsa, color = 'green', s = 4., label = rf"(KM15) Training Points $N = {len(x_training_phi_points)}$")
-bsa_train_test_split_axis.scatter(x_validation_phi_points, x_validation_bkm10_bsa, color = 'orange', s = 4., label = rf"(KM15) Validation Points $N = {len(x_validation_phi_points)}$")
-bsa_train_test_split_axis.scatter(x_testing_phi_points, x_testing_bkm10_bsa, color = 'red', s = 4., label = rf"(KM15) Testing Points $N = {len(x_testing_phi_points)}$")
-bsa_train_test_split_axis.legend(fontsize = 14.)
-bsa_train_test_split_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
-bsa_train_test_split_axis.set_ylabel(r"BSA", fontsize = 16.)
-bsa_train_test_split_axis.set_title(f"{title_string}\n(KM15): {km15_cff_string}")
-bsa_train_test_split_axis.grid(visible = True)
-bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.png")
-bsa_train_test_split_figure.savefig(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/plots/training_set_bsa_replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.eps")
-plt.close(bsa_train_test_split_figure)
+with open(
+    f"./hpc/version_{MAJOR_MINOR_NUMBER}/valid_kinematic_sets_v{MAJOR_MINOR_NUMBER}.txt", 
+    'r',
+    encoding = "utf8") as valid_sets_file:
+    valid_sets = [line.strip() for line in valid_sets_file if line.strip()]
+
+print(f"[INFO]: Found {len(valid_sets)} valid kinematic sets.")
+
+#################################################################################
+# Begin iteration over valid sets:
+#################################################################################
+
+for valid_kinematic_set in valid_sets:
+    print(f"[INFO]: Now processing set #{valid_kinematic_set}")
+
+    csv_files = sorted(
+        glob.glob(
+            f"./hpc/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/data/dnn_data_replica_*_v{MAJOR_MINOR_NUMBER}.csv"))
+
+    print(f"[INFO]: Glob collected {len(csv_files)} files!")
+    
+    for csv_file in csv_files:
+        file_path = Path(csv_file)
+        try:
+            # files are: dnn_data_replica_X_vY_Z.csv => ["dnn", "data", "replica", X, ...]
+            replica_id = file_path.name.split('_')[3]
+        except IndexError:
+            replica_id = "unknown"
+
+        print(f"[INFO]: Processing replica ID{replica_id}")
+    
+        df = pd.read_csv(csv_file)
+        
+        # kinematic setting
+        # we can index them in this way because they're fixed!
+        this_kinematic_set_title_string = (
+            rf"$k = {df['k'].iloc[0]:.2f}$ GeV, "
+            rf"$x_B = {df['x_b'].iloc[0]:.2f}$, "
+            rf"$t = {df['t'].iloc[0]}$, "
+            rf"$Q^2 = {df['q_squared'].iloc[0]}$ GeV$^2$"
+        )
+
+        cff_h_km15 = complex(df['Re[H]'].iloc[0], df['Im[H]'].iloc[0])
+        cff_ht_km15 = complex(df['Re[Ht]'].iloc[0], df['Im[Ht]'].iloc[0])
+        cff_e_km15 = complex(df['Re[E]'].iloc[0], df['Im[E]'].iloc[0])
+        cff_et_km15 = complex(df['Re[Et]'].iloc[0], df['Im[Et]'].iloc[0])
+
+        km15_cff_string = (
+            rf"$\mathcal{{H}} = {cff_h_km15:.3f}$, "
+            rf"$\mathcal{{E}} = {cff_e_km15:.3f}$, "
+            rf"$\widetilde{{\mathcal{{H}}}} = {cff_ht_km15:.3f}$, "
+            rf"$\widetilde{{\mathcal{{E}}}} = {cff_et_km15:.3f}$ "
+        )
+
+        data_vis_figure, data_vis_axis = plt.subplots(1, 1, figsize = (10, 9))
+        palette = {'train': 'green', 'validation': 'orange', 'test': 'red'}
+
+        for split, color in palette.items():
+            subset = df[df['split'] == split]
+            if split == 'train': label = "Training Points"
+            if split == 'validation': label = "Validation Points"
+            if split == 'vest': label = "Testing Points"
+
+            data_vis_axis.errorbar(
+                x = subset['phi'], y = subset['unp_beam_unp_target_xsec'], yerr = subset['unp_beam_unp_target_xsec_err'],
+                color = color, capsize = 4, fmt = 'o', label = rf"{label} ($N$ = {len(subset)})", alpha = 0.7)
+
+        data_vis_axis.legend(fontsize = 14.)
+
+        data_vis_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
+        data_vis_axis.set_ylabel(r"$d^{4}\sigma^{UU}$", fontsize = 16.)
+        data_vis_axis.set_title(
+            rf"(Set {valid_kinematic_set}, Replica {replica_id}) $d^{{4}}\sigma^{{UU}}$ vs. $\phi$, {this_kinematic_set_title_string}"
+            "\n"
+            f"(KM15): {km15_cff_string}", fontsize = 16)
+        data_vis_axis.grid(visible = True)
+        data_vis_axis.text(
+            0.00, -0.05,
+            f"Figure rendered {datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}", 
+            transform = data_vis_axis.transAxes,
+            verticalalignment = 'top',
+            horizontalalignment = 'left'
+        )
+
+        for extension in ['png', 'eps']:
+            data_vis_figure.savefig(
+                fname = f"./hpc/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/plots/datasplit_xsec_replica_{replica_id}_v{MAJOR_MINOR_NUMBER}.{extension}",
+                facecolor = 'white',
+                transparent = False)
+            
+        plt.close(data_vis_figure)
+
+        del data_vis_figure
+        del data_vis_axis
+        
+        data_vis_figure, data_vis_axis = plt.subplots(1, 1, figsize = (10, 9))
+        palette = {'train': 'green', 'validation': 'orange', 'test': 'red'}
+
+        for split, color in palette.items():
+            subset = df[df['split'] == split]
+            if split == 'train': label = "Training Points"
+            if split == 'validation': label = "Validation Points"
+            if split == 'vest': label = "Testing Points"
+
+            data_vis_axis.errorbar(
+                x = subset['phi'], y = subset['unp_target_bsa'], yerr = subset['unp_target_bsa_err'],
+                color = color, capsize = 2, fmt = 'o', label = rf"{label} ($N$ = {len(subset)})", alpha = 0.7)
+
+        data_vis_axis.legend(fontsize = 14.)
+
+        data_vis_axis.set_xlabel(r"$\phi$ [radians]", fontsize = 16.)
+        data_vis_axis.set_ylabel(r"BSA $\left( \Lambda = 0 \right)$", fontsize = 16.)
+        data_vis_axis.set_title(
+            rf"(Set {valid_kinematic_set}, Replica {replica_id}) BSA $\left( \Lambda = 0 \right)$ vs. $\phi$, {this_kinematic_set_title_string}"
+            "\n"
+            f"(KM15): {km15_cff_string}", fontsize = 16)
+        data_vis_axis.grid(visible = True)
+        data_vis_axis.text(
+            0.00, -0.05,
+            f"Figure rendered {datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}", 
+            transform = data_vis_axis.transAxes,
+            verticalalignment = 'top',
+            horizontalalignment = 'left'
+        )
+
+        for extension in ['png', 'eps']:
+            data_vis_figure.savefig(
+                fname = f"./hpc/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/plots/datasplit_bsa_replica_{replica_id}_v{MAJOR_MINOR_NUMBER}.{extension}",
+                facecolor = 'white',
+                transparent = False)
+            
+        plt.close(data_vis_figure)
+
+        del data_vis_figure
+        del data_vis_axis
+
+        del df
+
+print("[INFO]: Processing complete!")
