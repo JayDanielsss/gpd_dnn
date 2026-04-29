@@ -3,7 +3,7 @@
 # Purpose: runs *a* replica based on a single
 # DNN architecture.
 # Created: 20260107
-# Last changed: 20260407
+# Last changed: 20260429
 ##########################################
 
 print("[INFO]: Script began running!")
@@ -69,7 +69,7 @@ print(f"[INFO]: Detected lepton helicity to be: {'unpolarized' if TEST_LEPTON_HE
 
 NUMBER_OF_REPLICAS = 100
 _NUMBER_OF_EPOCHS = 750
-_BATCH_SIZE = 25
+_BATCH_SIZE = 1
 
 print(f"[INFO]: Each replica has a batch size of {_BATCH_SIZE}")
 print(f"[INFO]: Each replica will run for {_NUMBER_OF_EPOCHS} if assuming no EarlyStopping.")
@@ -305,7 +305,9 @@ history_df.to_csv(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{k
 
 dnn_evaluation_statistics = dnn_model.evaluate(x_testing, y_testing, verbose = 0, return_dict = True)
 print(f"[INFO]: Test Loss for Replica {replica_number}: {dnn_evaluation_statistics}")
-pd.DataFrame([dnn_evaluation_statistics]).to_csv(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replica_{replica_number}_test_metrics.csv", index = False)
+pd.DataFrame([dnn_evaluation_statistics]).to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/replica_{replica_number}_test_metrics.csv", 
+    index = False)
 # https://stackoverflow.com/a/17840195 -> for why we need to cast it into a list!
 
 y_predictions = dnn_model.predict(x_testing)
