@@ -46,8 +46,8 @@ plt.rcParams['savefig.dpi'] = 300
 # Version numbers!
 #################################################################################
 
-VERSION_NUMBER = 1
-MINOR_NUMBER = 3
+VERSION_NUMBER = 3
+MINOR_NUMBER = 1
 MAJOR_MINOR_NUMBER = f"{VERSION_NUMBER}_{MINOR_NUMBER}"
 
 print(f"[INFO]: We are saving figures and data with the following appendage: {MAJOR_MINOR_NUMBER}")
@@ -57,7 +57,7 @@ print(f"[INFO]: We are saving figures and data with the following appendage: {MA
 #################################################################################
 
 with open(
-    f"./hpc/version_{MAJOR_MINOR_NUMBER}/valid_kinematic_sets_v{MAJOR_MINOR_NUMBER}.txt", 
+    f"./hpc/errors/version_{MAJOR_MINOR_NUMBER}/valid_kinematic_sets_v{MAJOR_MINOR_NUMBER}.txt", 
     'r',
     encoding = "utf8") as valid_sets_file:
     valid_sets = [line.strip() for line in valid_sets_file if line.strip()]
@@ -73,7 +73,7 @@ for valid_kinematic_set in valid_sets:
 
     csv_files = sorted(
         glob.glob(
-            f"./hpc/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/data/dnn_data_replica_*_v{MAJOR_MINOR_NUMBER}.csv"))
+            f"./hpc/errors/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/data/dnn_data_replica_*_v{MAJOR_MINOR_NUMBER}.csv"))
 
     print(f"[INFO]: Glob collected {len(csv_files)} files!")
     
@@ -117,7 +117,7 @@ for valid_kinematic_set in valid_sets:
             subset = df[df['split'] == split]
             if split == 'train': label = "Training Points"
             if split == 'validation': label = "Validation Points"
-            if split == 'vest': label = "Testing Points"
+            if split == 'test': label = "Testing Points"
 
             data_vis_axis.errorbar(
                 x = subset['phi'], y = subset['unp_beam_unp_target_xsec'], yerr = subset['unp_beam_unp_target_xsec_err'],
@@ -142,7 +142,7 @@ for valid_kinematic_set in valid_sets:
 
         for extension in ['png', 'eps']:
             data_vis_figure.savefig(
-                fname = f"./hpc/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/plots/datasplit_xsec_replica_{replica_id}_v{MAJOR_MINOR_NUMBER}.{extension}",
+                fname = f"./hpc/errors/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/plots/datasplit_xsec_replica_{replica_id}_v{MAJOR_MINOR_NUMBER}.{extension}",
                 facecolor = 'white',
                 transparent = False)
             
@@ -158,7 +158,7 @@ for valid_kinematic_set in valid_sets:
             subset = df[df['split'] == split]
             if split == 'train': label = "Training Points"
             if split == 'validation': label = "Validation Points"
-            if split == 'vest': label = "Testing Points"
+            if split == 'test': label = "Testing Points"
 
             data_vis_axis.errorbar(
                 x = subset['phi'], y = subset['unp_target_bsa'], yerr = subset['unp_target_bsa_err'],
@@ -183,7 +183,7 @@ for valid_kinematic_set in valid_sets:
 
         for extension in ['png', 'eps']:
             data_vis_figure.savefig(
-                fname = f"./hpc/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/plots/datasplit_bsa_replica_{replica_id}_v{MAJOR_MINOR_NUMBER}.{extension}",
+                fname = f"./hpc/errors/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{valid_kinematic_set}/plots/datasplit_bsa_replica_{replica_id}_v{MAJOR_MINOR_NUMBER}.{extension}",
                 facecolor = 'white',
                 transparent = False)
             
