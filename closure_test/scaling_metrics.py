@@ -204,3 +204,21 @@ del cff_im_h_fits_vs_phi_figure
 del cff_im_h_fits_vs_phi_axis
 
 print("[INFO]: Script finished running!")
+
+#### for error pseudodata
+
+## for UNPOLARIZED CROSS-SECTION!!
+np.array([360 + 1, 330 + 1, 300 + 1, 270 + 1, 240 + 1, 210 + 1, 180 + 1, 150 + 1, 120 + 1, 90 + 1, 60 + 1, 30 + 1, 15 + 1, 10 + 1]), # phi values
+np.array([ # make sure you remember where this comes from!
+    0.3960375303940763 / (360 + 1),
+    0.35377598117899756 / (330 + 1),
+    0.31322912155979943 / (300 + 1)
+    ]),
+
+## for BSA DATA!!!
+np.array([360 + 1, 330 + 1, 300 + 1, 270 + 1, 240 + 1, 210 + 1, 180 + 1, 150 + 1, 120 + 1, 90 + 1, 60 + 1, 30 + 1, 15 + 1, 10 + 1]), # phi values
+np.array([ # make sure you remember where this comes from!
+    0.08434800603689552 / (360 + 1),
+    0.09612863350808214 / (330 + 1),
+    0.07006224233637139 / (300 + 1)
+    ]),
