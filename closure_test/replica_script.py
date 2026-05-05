@@ -232,7 +232,7 @@ def cff_h_model():
         maxval = _INITIALIZER_MAXMIMUM_VALUE,
         seed = None)
     
-    all_model_inputs = tf.keras.Input(shape = (4,), name = "input_values") 
+    all_model_inputs = tf.keras.Input(shape = (4,), name = "input_values")
     kinematic_inputs = tf.keras.layers.Lambda(lambda x: x[:, :3], name = 'input_kinematics')(all_model_inputs) # takes t, xb, qsquared
 
     # [NOTE]: ONLY kinematic inputs goes into the DNN!
@@ -261,6 +261,8 @@ def cff_h_model():
 # DNN Model Setup
 ##########################################
 
+tf.keras.backend.clear_session()
+
 dnn_model = cff_h_model()
 
 dnn_model_history = dnn_model.fit(
@@ -280,7 +282,7 @@ dnn_model_history = dnn_model.fit(
     )
 
 number_of_epochs_run = len(dnn_model_history.epoch)
-print(f"The model ran for {number_of_epochs_run} epochs before early stopping.")
+print(f"[INFO]: The model ran for {number_of_epochs_run} epochs before early stopping.")
 
 dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
 
@@ -293,6 +295,7 @@ metadata = {
     "training_points": len(x_training),
     "features": list(x_training.columns)
 }
+
 with open(
     file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/replica_{replica_number}_metadata.json",
     mode = "w",
@@ -314,7 +317,9 @@ y_predictions = dnn_model.predict(x_testing)
 prediction_results = x_testing.copy()
 prediction_results['true_y'] = y_testing
 prediction_results['predicted_y'] = y_predictions.flatten()
-prediction_results.to_csv(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/replica_{replica_number}_test_predictions.csv", index = False)
+prediction_results.to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/kinematic_set_{kinematic_set_number}/data/replica_{replica_number}_test_predictions.csv",
+    index = False)
 
 # cleanup
 del dnn_model
@@ -322,7 +327,6 @@ del training_df
 del validation_df
 del testing_df
 
-tf.keras.backend.clear_session()
 gc.collect()
 
 with open(
