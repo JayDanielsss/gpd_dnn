@@ -2,7 +2,7 @@
 # FILE INFORMATION:
 # Purpose: generate replica pseudodata
 # Created: 20260325
-# Last changed: 20260401
+# Last changed: 20260427
 ##########################################
 
 print("[INFO]: Script began running!")
@@ -38,6 +38,8 @@ print(f"[INFO]: We are saving figures and data with the following appendage: {MA
 # Begin main program flow!
 #################################################################################
 
+# sampling true points with error distribution
+USING_GAUSSIAN_ERROR_SAMPLING = True
 NUMBER_OF_REPLICAS = 100
 _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE = 0.8 # 80% temporary, 20% testing
 _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE = 0.8 # of the above 80% temporary, 80% training, 20% validation
@@ -72,10 +74,6 @@ pseudodata_dataframe = pd.read_csv(
 
 assert pseudodata_dataframe["q_squared"].iloc[0] == pseudodata_dataframe["q_squared"].iloc[5], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
 assert pseudodata_dataframe["k"].iloc[0] == pseudodata_dataframe["k"].iloc[10], "[ASSERT]: iloc revealed kinematic sub-dataframe not invariant under index."
-
-# extract the x input data to the dnn:
-x_data = pseudodata_dataframe[["t", "x_b", "q_squared", "phi"]]
-y_data = pseudodata_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
 
 #################################################################################
 # Experimental errors!
@@ -116,6 +114,25 @@ pseudodata_dataframe["unp_target_bsa_err"] = np.sqrt(
 #################################################################################
 # Finally creating the pseudodata:
 #################################################################################
+
+if USING_GAUSSIAN_ERROR_SAMPLING:
+
+    print("[INFO]: Gaussian error sampling was true, so we are now generating new pseudodata.")
+
+    pseudodata_dataframe["unp_beam_unp_target_xsec"] = np.random.normal(
+        loc = pseudodata_dataframe["unp_beam_unp_target_xsec"],
+        scale = pseudodata_dataframe["unp_beam_unp_target_xsec_err"]
+    )
+    
+    # Sampling for the BSA
+    pseudodata_dataframe["unp_target_bsa"] = np.random.normal(
+        loc = pseudodata_dataframe["unp_target_bsa"],
+        scale = pseudodata_dataframe["unp_target_bsa_err"]
+    )
+
+# extract the x input data to the dnn:
+x_data = pseudodata_dataframe[["t", "x_b", "q_squared", "phi"]]
+y_data = pseudodata_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
 
 TOTAL_DATA_SIZE = len(x_data)
 print(f"[INFO]: Total data size is: {TOTAL_DATA_SIZE}")
