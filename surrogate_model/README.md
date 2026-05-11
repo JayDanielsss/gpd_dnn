@@ -1,0 +1,1 @@
+All we are doing here is supervised learning: the input data is the kinematic data and the output data is some set of observables measured in experiment. A **surrogate model** is what we use to refer to a DNN that effectively models the experimental data. 
