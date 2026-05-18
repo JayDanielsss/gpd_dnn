@@ -1,9 +1,9 @@
-##########################################
+#################################################################################
 # FILE INFORMATION:
-# Purpose: generate replica pseudodata
-# Created: 20260325
-# Last changed: 20260427
-##########################################
+# Purpose: produce a replica DNN model mapping kinematics to observables.
+# Created: 20260505
+# Last changed: 20260518
+#################################################################################
 
 print("[INFO]: Script began running!")
 
@@ -12,45 +12,91 @@ print("[INFO]: Script began running!")
 #################################################################################
 
 import gc
-import datetime
+import json
+import sys
 
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-import corner
-import seaborn as sns
-
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+
+#################################################################################
+# HPC logic:
+#################################################################################
+
+replica_number = int(sys.argv[1])
+
+#################################################################################
+# In case you want to reproduce things --- but this isn't necessary!
+#################################################################################
+
+# np.random.seed(replica_number)
+# tf.random.set_seed(replica_number)
+
+#################################################################################
+# Scratch path
+#################################################################################
+
+# verify this is what you want
+SCRATCH_PATH = 'placeholder!'
 
 #################################################################################
 # Version numbers!
 #################################################################################
 
-print(f"[INFO]: numpy version: {np.__version__}")
-print(f"[INFO]: pandas version: {pd.__version__}")
-print(f"[INFO]: tensorflow version: {tf.__version__}")
-print(f"[INFO]: corner version: {corner.__version__}")
-print(f"[INFO]: seaborn version: {sns.__version__}")
-
 VERSION_NUMBER = 1
 MINOR_NUMBER = 1
 MAJOR_MINOR_NUMBER = f"{VERSION_NUMBER}_{MINOR_NUMBER}"
 
-print(f"[INFO]: We are saving figures and data with the following appendage: {MAJOR_MINOR_NUMBER}")
-
 #################################################################################
-# Begin main program flow!
+# Loading the data!
 #################################################################################
 
-test_dataframe = pd.read_csv(
-    f'./local/version_{MAJOR_MINOR_NUMBER}/data/combined_xsec_bsa_experimental_data_v{MAJOR_MINOR_NUMBER}.csv')
+test_dataframe = pd.read_csv('STUFF.csv')
 
-x_data = test_dataframe[["k", "t", "x_b", "q_squared", "phi"]]
+#################################################################################
+# We now save the *original values* of the experimental datapoint.
+#################################################################################
+
+test_dataframe['original_xsec'] = (
+    test_dataframe['unp_beam_unp_target_xsec']
+)
+
+test_dataframe['original_bsa'] = (
+    test_dataframe['unp_target_bsa']
+)
+
+#################################################################################
+# Finally creating the pseudodata:
+#################################################################################
+
+USING_GAUSSIAN_ERROR_SAMPLING = True
+
+if USING_GAUSSIAN_ERROR_SAMPLING:
+
+    test_dataframe['unp_beam_unp_target_xsec'] = np.random.normal(
+        loc = test_dataframe['original_xsec'],
+        scale = test_dataframe['unp_beam_unp_target_xsec_err']
+    )
+
+    test_dataframe['unp_target_bsa'] = np.random.normal(
+        loc = test_dataframe['original_bsa'],
+        scale = test_dataframe['unp_target_bsa_err']
+    )
+
+#################################################################################
+# Split into (x, y) supervised pairs!
+#################################################################################
+
+x_data = test_dataframe[["t", "x_b", "q_squared", "phi"]]
 y_data = test_dataframe[["unp_beam_unp_target_xsec", "unp_target_bsa"]]
 
 TOTAL_DATA_SIZE = len(x_data)
 print(f"[NOTE]: Total data size is: {TOTAL_DATA_SIZE}")
+
+#################################################################################
+# Train/validation/testing splitting!
+#################################################################################
 
 _DNN_TESTING_TEMPORARY_SPLIT_PERCENTAGE = 0.1 # 90% temporary, 10% testing
 _DNN_TRAINING_VALIDATION_SPLIT_PERCENTAGE = 0.1 # of the above 90% temporary, 90% training, 10% validation
@@ -77,185 +123,204 @@ print(f"[NOTE]: x-validation size is: {len(x_validation)}")
 print(f"[NOTE]: x-testing size is: {len(x_testing)}")
 
 #################################################################################
-# Plotting stuff!
+# TensorFlow model!
 #################################################################################
 
-plt.rcParams.update({
-    "text.usetex": True, "font.family": "serif",
-})
-plt.rcParams['xtick.direction'] = 'in'
-plt.rcParams['xtick.major.size'] = 8.5
-plt.rcParams['xtick.major.width'] = 0.5
-plt.rcParams['xtick.minor.size'] = 2.5
-plt.rcParams['xtick.minor.width'] = 0.5
-plt.rcParams['xtick.minor.visible'] = True
-plt.rcParams['xtick.top'] = True
-plt.rcParams['ytick.direction'] = 'in'
-plt.rcParams['ytick.major.size'] = 8.5
-plt.rcParams['ytick.major.width'] = 0.5
-plt.rcParams['ytick.minor.size'] = 2.5
-plt.rcParams['ytick.minor.width'] = 0.5
-plt.rcParams['ytick.minor.visible'] = True
-plt.rcParams['ytick.right'] = True
-plt.rcParams['savefig.dpi'] = 300
+def cff_h_model():
+    # initializer:
+    initializer = tf.keras.initializers.GlorotNormal(seed = None)
 
-all_uuxsec_experiments_figure = plt.figure(figsize = (9, 7))
-all_uuxsec_experiments_axis = all_uuxsec_experiments_figure.add_subplot(1, 1, 1, projection = "3d")
+    # input layer:
+    model_inputs = tf.keras.Input(shape = (4,), name = "input_values")
 
-axis_elevation = all_uuxsec_experiments_axis.elev # extract eleveation param
-axis_azimuthal = all_uuxsec_experiments_axis.azim # extract azimuth parm
+    # hidden layers:
+    hidden = tf.keras.layers.Dense(
+        48, kernel_initializer = initializer, activation = "tanh")(model_inputs)
+    hidden = tf.keras.layers.Dense(
+        48, kernel_initializer = initializer, activation = "tanh")(hidden)
+    hidden = tf.keras.layers.Dense(
+        48, kernel_initializer = initializer, activation = "tanh")(hidden)
 
-all_uuxsec_experiments_axis.text2D(
-    0.01, 0.03,
-    fr"elevation = {axis_elevation}, $\phi = {axis_azimuthal}^{{\circ}}$", 
-    transform = all_uuxsec_experiments_axis.transAxes)
-all_uuxsec_experiments_axis.text2D(
-    0.01, 0.00,
-    fr"Figure rendered {datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}", 
-    transform = all_uuxsec_experiments_axis.transAxes)
+    # output layer:
+    model_output = tf.keras.layers.Dense(2, activation = "linear")(hidden)
 
-x_train_vals = x_training["x_b"]
-y_train_vals = x_training["q_squared"]
-z_train_vals = x_training["t"]
+    model = tf.keras.Model(inputs = model_inputs, outputs = model_output)
 
-x_val_vals = x_validation["x_b"]
-y_val_vals = x_validation["q_squared"]
-z_val_vals = x_validation["t"]
+    model.compile(
+        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.01),
+        loss = tf.keras.losses.MeanSquaredError())
 
-x_test_vals = x_testing["x_b"]
-y_test_vals = x_testing["q_squared"]
-z_test_vals = x_testing["t"]
-
-all_uuxsec_experiments_axis.scatter(
-    x_train_vals, y_train_vals, z_train_vals,
-    c = 'green', label = 'Training',
-    s = 20, alpha = 0.3, edgecolors = 'none')
-
-all_uuxsec_experiments_axis.scatter(
-    x_val_vals, y_val_vals, z_val_vals,
-    c = 'orange', label = 'Validation',
-    s = 20, alpha = 0.3, edgecolors = 'none')
-
-all_uuxsec_experiments_axis.scatter(
-    x_test_vals, y_test_vals, z_test_vals,
-    c = 'red', label = 'Testing',
-    s = 25, alpha = 0.3, edgecolors = 'none')
-
-all_uuxsec_experiments_axis.grid(True)
-all_uuxsec_experiments_axis.set_title(
-    r"Experimental Kinematic Settings Space for $d^{{4}}\sigma^{{UU}}$", fontsize = 18)
-all_uuxsec_experiments_axis.set_xlabel(r"$x_{\textrm{B}}$", fontsize = 16.)
-all_uuxsec_experiments_axis.set_ylabel(r"$Q^{2}$", fontsize = 16.)
-all_uuxsec_experiments_axis.set_zlabel(r"$t$", fontsize = 16.)
-all_uuxsec_experiments_axis.legend(fontsize = 16.)
-
-for extension in ['png', 'eps']:
-    all_uuxsec_experiments_figure.savefig(
-        f"./local/version_{MAJOR_MINOR_NUMBER}/plots/surrogate_dnn_data_v{MAJOR_MINOR_NUMBER}.{extension}",
-            facecolor = 'white',
-            transparent = False)
-
-plt.close(all_uuxsec_experiments_figure)
+    return model
 
 #################################################################################
 # Training!
 #################################################################################
 
-def cff_h_model():
-    initializer = tf.keras.initializers.RandomUniform(
-        minval = -0.1, maxval = 0.1, seed = None)
-    
-    model_inputs = tf.keras.Input(shape = (5,), name = "input_values")
-    hidden = tf.keras.layers.Dense(10, kernel_initializer = initializer, activation = "relu")(model_inputs)
-    hidden = tf.keras.layers.Dense(10, kernel_initializer = initializer, activation = "relu")(hidden)
-    hidden = tf.keras.layers.Dense(10, kernel_initializer = initializer, activation = "relu")(hidden)
-    model_output = tf.keras.layers.Dense(2, kernel_initializer = initializer, activation = "relu")(hidden)
+_NUMBER_OF_EPOCHS = 1000
+_BATCH_SIZE = len(x_training)
 
-    model = tf.keras.Model(
-        inputs = model_inputs,
-        outputs = model_output)
+tf.keras.backend.clear_session()
 
-    model.compile(
-        optimizer = tf.keras.optimizers.Adam(),
-        loss = tf.keras.losses.MeanSquaredError(),
-        )
-    return model
+dnn_model = cff_h_model()
 
-NUMBER_OF_EPOCHS = 750
-number_of_replicas = 1
+dnn_model_history = dnn_model.fit(
+    x_training, y_training,
+    validation_data = (x_validation, y_validation),
+    epochs = _NUMBER_OF_EPOCHS,
+    # [NOTE]: BATCHSIZE really matters!
+    batch_size = _BATCH_SIZE,
+    verbose = 0)
 
-for replica in range(number_of_replicas):
+dnn_model.save(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
 
-    replica_number = replica + 1
+#################################################################################
+# Post-train evaluation and analysis and metadata collection:
+#################################################################################
 
-    tf.keras.backend.clear_session()
-    dnn_model = cff_h_model()
+number_of_epochs_run = len(dnn_model_history.epoch)
+print(f"[INFO]: The model ran for {number_of_epochs_run} epochs before early stopping.")
 
-    dnn_model_history = dnn_model.fit(
-        x_training, y_training,
-        validation_data = (x_validation, y_validation),
-        epochs = NUMBER_OF_EPOCHS, batch_size = 1,
-        verbose = 1)
+history_df = pd.DataFrame(dnn_model_history.history)
+history_df['epoch'] = range(1, len(history_df) + 1)
+history_df.to_csv(f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/data/replica_{replica_number}_history.csv", index = False)
 
-    number_of_epochs_run = len(dnn_model_history.epoch)
-    print(f"[INFO]: The model ran for {number_of_epochs_run} epochs before early stopping.")
+dnn_evaluation_statistics = dnn_model.evaluate(x_testing, y_testing, verbose = 0, return_dict = True)
+print(f"[INFO]: Test Loss for Replica {replica_number}: {dnn_evaluation_statistics}")
 
-    dnn_model.save(f"./local/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_v{MAJOR_MINOR_NUMBER}.keras")
+pd.DataFrame(
+    # https://stackoverflow.com/a/17840195 -> for why we need to cast it into a list!
+    [dnn_evaluation_statistics]).to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/data/replica_{replica_number}_test_metrics.csv", 
+    index = False)
 
-    training_loss_data = dnn_model_history.history["loss"]
-    validation_loss_data = dnn_model_history.history["val_loss"]
+y_predictions = dnn_model.predict(x_data)
 
-    dnn_evaluation_statistics = dnn_model.evaluate(x_testing, y_testing, verbose = 1)
-    print(f"[INFO]: Test Loss for Replica {replica_number}: {dnn_evaluation_statistics}")
+prediction_results = x_data.copy()
 
-    pd.DataFrame({
-        'testing_loss': [dnn_evaluation_statistics], # https://stackoverflow.com/a/17840195 -> for why we need to cast it into a list!
-    }).to_csv(
-        f"./local/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_loss_data.csv", 
-        index = False)
+#################################################################################
+# Original experimental data:
+#################################################################################
 
-    # make DF with DNN training information
-    pd.DataFrame(dnn_model_history.history).to_csv(
-        f"./local/version_{MAJOR_MINOR_NUMBER}/replicas/replica_{replica_number}_losses_vs_epochs.csv", 
-        index = False)
+prediction_results['original_xsec'] = test_dataframe['original_xsec'].values
+prediction_results['original_bsa'] = test_dataframe['original_bsa'].values
 
-    gc.collect()
+#################################################################################
+# Experimental uncertainty:
+#################################################################################
 
-    y_predictions = dnn_model.predict(x_training)
+prediction_results['xsec_err'] = test_dataframe['unp_beam_unp_target_xsec_err'].values
+prediction_results['bsa_err'] = test_dataframe['unp_target_bsa_err'].values
 
-    true_xsec = y_training.iloc[:, 0].values
-    pred_xsec = y_predictions[:, 0]
-    true_bsa = y_training.iloc[:, 1].values
-    pred_bsa = y_predictions[:, 1]
+#################################################################################
+# The pseudodata-generated labels *seen by this replica only!*
+#################################################################################
 
-    residuals = np.abs(y_training - y_predictions)
-    _EPSILON = 1e-8
-    residuals_normalized = (residuals - residuals.min()) / (residuals.max() - residuals.min() + _EPSILON)
+prediction_results['replica_xsec'] = y_data['unp_beam_unp_target_xsec'].values
+prediction_results['replica_bsa'] = y_data['unp_target_bsa'].values
 
-    separation_figure = plt.figure(figsize = (8, 6))
-    separation_axis = separation_figure.add_subplot(1, 1, 1)
+#################################################################################
+# DNN predictions:
+#################################################################################
 
-    min_val = min(true_xsec.min(), pred_xsec.min())
-    max_val = max(true_xsec.max(), pred_xsec.max())
-    separation_axis.plot([min_val, max_val], [min_val, max_val], 'k--', linewidth = 2, label = "Perfect Fit")
+prediction_results['pred_xsec'] = y_predictions[:, 0]
+prediction_results['pred_bsa']  = y_predictions[:, 1]
 
-    separation_scatterplot = separation_axis.scatter(
-        true_xsec, pred_xsec,
-        c = residuals_normalized, cmap = "RdYlGn_r", alpha = 0.7)
+prediction_results['replica_number'] = replica_number
 
-    colorbar = separation_figure.colorbar(separation_scatterplot, ax = separation_axis)
-    colorbar.set_label("Normalized Residual", fontsize = 16)
+prediction_results.to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/data/replica_{replica_number}_test_predictions.csv",
+    index = False)
 
-    separation_axis.set_xlabel("True Cross Section", rotation = 0, fontsize = 18)
-    separation_axis.set_ylabel("Predicted Cross Section", fontsize = 18)
-    separation_axis.set_title("Model Fit: Prediction vs. Ground Truth", rotation = 0, fontsize = 20)
-    separation_axis.grid(True)
+#################################################################################
+# Smooth replica surface across t, xb, q_squared, and phi:
+#################################################################################
 
-    for extension in ['png', 'eps']:
-        separation_figure.savefig(
-            fname = f"./local/version_{MAJOR_MINOR_NUMBER}/plots/surrogate_dnn_performance_v{MAJOR_MINOR_NUMBER}.{extension}",
-            facecolor = 'white',
-            transparent = False)
-        
-    plt.close(separation_figure)
-    del dnn_model
+print("[INFO]: Computing smooth phi predictions...")
+
+t_min = x_data['t'].min()
+t_max = x_data['t'].max()
+
+print(f"[INFO]: bounding for t: {t_min} < t < {t_max}")
+
+xb_min = x_data['x_b'].min()
+xb_max = x_data['x_b'].max()
+
+print(f"[INFO]: bounding for xb: {xb_min} < x_b < {xb_max}")
+
+q2_min = x_data['q_squared'].min()
+q2_max = x_data['q_squared'].max()
+
+print(f"[INFO]: bounding for Q^2: {q2_min} < Q^2 < {q2_max}")
+
+# these numbers could change if you want them to!
+NUMBER_OF_T = 10
+NUMBER_OF_XB = 10
+NUMBER_OF_Q2 = 10
+NUMBER_OF_PHI = 361
+
+t_grid = np.round(np.linspace(t_min, t_max, NUMBER_OF_T), 3)
+xb_grid = np.round(np.linspace(xb_min, xb_max, NUMBER_OF_XB), 4)
+q2_grid = np.round(np.linspace(q2_min, q2_max, NUMBER_OF_Q2), 3)
+phi_grid = np.linspace(-np.pi, np.pi, NUMBER_OF_PHI)
+
+mesh = np.meshgrid(t_grid, xb_grid, q2_grid, phi_grid, indexing = 'ij')
+
+t_flat = mesh[0].ravel()
+xb_flat = mesh[1].ravel()
+q2_flat = mesh[2].ravel()
+phi_flat = mesh[3].ravel()
+
+smooth_input = pd.DataFrame({
+    't': t_flat,
+    'x_b': xb_flat,
+    'q_squared': q2_flat,
+    'phi': phi_flat
+})
+
+smooth_predictions = dnn_model.predict(smooth_input, verbose = 0)
+
+# making predictions
+smooth_input['pred_xsec'] = smooth_predictions[:, 0]
+smooth_input['pred_bsa'] = smooth_predictions[:, 1]
+
+smooth_input.to_csv(
+    f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/data/"
+    f"replica_{replica_number}_smooth_predictions.csv",
+    index = False
+)
+
+print("[INFO]: Smooth predictions saved.")
+
+#################################################################################
+# Metadata dump:
+#################################################################################
+
+metadata = {
+    "replica_id": replica_number,
+    "version": MAJOR_MINOR_NUMBER,
+    "batch_size": _BATCH_SIZE,
+    "max_epochs": _NUMBER_OF_EPOCHS,
+    "actual_epochs": len(dnn_model_history.epoch),
+    "training_points": len(x_training),
+    "features": list(x_training.columns),
+    "number_of_t": NUMBER_OF_T,
+    "number_of_xb": NUMBER_OF_XB,
+    "number_of_q2": NUMBER_OF_Q2,
+    "number_of_phi_deg": NUMBER_OF_PHI
+}
+
+with open(
+    file = f"{SCRATCH_PATH}/version_{MAJOR_MINOR_NUMBER}/data/replica_{replica_number}_metadata.json",
+    mode = "w",
+    encoding = "utf-8") as f:
+    json.dump(metadata, f, indent = 4)
+
+#################################################################################
+# Exit program:
+#################################################################################
+
+# cleanup
+del dnn_model
+gc.collect()
+
+print("[INFO]: End of script reached!")
