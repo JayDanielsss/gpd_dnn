@@ -11,6 +11,7 @@ causing the BSA head to collapse to a near-trivial constant fit.
 """
 
 import numpy as np
+import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 
 
@@ -99,3 +100,55 @@ def ensemble_predict(models, x_raw, x_scaler, y_scaler):
     std_physical  = std_scaled * y_scaler.scale_  # element-wise; scale_ shape: (n_outputs,)
 
     return mean_physical, std_physical
+
+
+def build_replica_model(seed: int) -> tf.keras.Model:
+    """Build and compile a seeded replica model with deterministic initialization.
+
+    Each Dense layer receives its own ``GlorotNormal`` initializer instance
+    with a unique seed derived from ``seed``.  Using one shared initializer
+    instance across layers triggers a Keras warning and causes correlated
+    weight draws; separate instances with offset seeds avoid both issues.
+
+    Architecture: Input(4) → Dense(48, tanh) × 3 → Dense(2, linear)
+
+    Parameters
+    ----------
+    seed : int
+        Base seed for weight initialization.  Layers use seeds
+        ``seed``, ``seed+1000``, ``seed+2000``, and ``seed+3000``
+        so that within one model the hidden layers have meaningfully
+        different weight draws despite sharing the same shape.
+
+    Returns
+    -------
+    model : tf.keras.Model
+        Compiled Keras model with Adam(lr=3e-4) and MSE loss.
+    """
+    # One separate GlorotNormal instance per layer — avoids the
+    # "initializer instance reused" Keras warning.
+    init_1 = tf.keras.initializers.GlorotNormal(seed=seed)
+    init_2 = tf.keras.initializers.GlorotNormal(seed=seed + 1000)
+    init_3 = tf.keras.initializers.GlorotNormal(seed=seed + 2000)
+    init_out = tf.keras.initializers.GlorotNormal(seed=seed + 3000)
+
+    model_inputs = tf.keras.Input(shape=(4,), name="input_values")
+
+    hidden = tf.keras.layers.Dense(
+        48, kernel_initializer=init_1, activation="tanh")(model_inputs)
+    hidden = tf.keras.layers.Dense(
+        48, kernel_initializer=init_2, activation="tanh")(hidden)
+    hidden = tf.keras.layers.Dense(
+        48, kernel_initializer=init_3, activation="tanh")(hidden)
+
+    model_output = tf.keras.layers.Dense(
+        2, kernel_initializer=init_out, activation="linear")(hidden)
+
+    model = tf.keras.Model(inputs=model_inputs, outputs=model_output)
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
+        loss="mse",
+    )
+
+    return model
